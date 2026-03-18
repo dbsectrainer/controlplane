@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(act push:*)",
+      "Bash(docker run:*)",
+      "Bash(detect-secrets scan:*)",
+      "Bash(detect-secrets --version)"
+    ]
+  }
+}

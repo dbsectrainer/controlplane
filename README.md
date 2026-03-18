@@ -1,6 +1,6 @@
 # ControlPlane
 
-**End-to-end security architecture demonstrating Zero Trust, compliance automation, supply chain security, and real-time threat detection — runnable in 5 minutes with `docker-compose up`.**
+**End-to-end security architecture demonstrating Zero Trust, compliance automation, supply chain security, and real-time threat detection — runnable in 5 minutes with `docker compose up`.**
 
 ---
 
@@ -10,7 +10,7 @@
 git clone https://github.com/dbsectrainer/controlplane
 cd controlplane
 ./shared/scripts/demo-setup.sh
-docker-compose up -d
+docker compose up -d
 open http://localhost:3000/api-docs  # Demo app
 open http://localhost:3100           # Grafana security dashboards (admin/admin)
 open http://localhost:8200/ui        # Vault (token: root)
@@ -155,7 +155,7 @@ iOS and Android security testing pipeline covering the OWASP Mobile Security Tes
 
 ## Live Demo Scenarios
 
-Start the demo attacker: `docker-compose --profile demo up -d attacker`
+Start the demo attacker: `docker compose --profile demo up -d attacker`
 
 | #   | Scenario               | Command                                                                                      | What it shows                                                    |
 | --- | ---------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -205,10 +205,50 @@ controlplane/
 
 ---
 
+## CI/CD Pipeline
+
+The `.github/workflows/master-pipeline.yml` runs a 4-stage DAG on every push to `main`/`develop`:
+
+| Stage | Jobs                                                                                                     | Description                      |
+| ----- | -------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1     | validate-vault-policies, validate-opa-policies, scan-shared-configs                                      | Shared infra validation          |
+| 2     | pipeline-app-devsecops, pipeline-zero-trust, pipeline-cloud-native, pipeline-compliance, pipeline-mobile | Per-project pipelines (parallel) |
+| 3     | integration-tests                                                                                        | Live Vault + OPA smoke tests     |
+| 4     | unified-report                                                                                           | Portfolio summary artifact       |
+
+### Run locally with `act`
+
+Install [`act`](https://github.com/nektos/act) (v0.2.84+) and Docker, then:
+
+```bash
+# Run a single job
+act push -j validate-vault-policies
+act push -j validate-opa-policies
+act push -j scan-shared-configs
+act push -j pipeline-cloud-native
+act push -j pipeline-app-devsecops
+
+# List all jobs
+act push --list
+
+# Integration tests (requires Docker-in-Docker)
+act push -j integration-tests --privileged
+```
+
+The `.actrc` at the repo root configures the runner image and architecture for Apple Silicon:
+
+```
+-P ubuntu-latest=catthehacker/ubuntu:act-22.04
+--container-architecture linux/amd64
+--artifact-server-path /tmp/act-artifacts
+```
+
+---
+
 ## Teardown
 
 ```bash
-docker-compose down -v    # Remove containers and volumes
+docker compose down -v    # Remove containers and volumes
 ```
 
 ---

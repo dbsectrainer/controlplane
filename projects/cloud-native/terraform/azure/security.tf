@@ -97,13 +97,41 @@ resource "azurerm_application_gateway" "waf" {
     public_ip_address_id = azurerm_public_ip.waf.id
   }
 
+  backend_address_pool {
+    name = "backend-pool"
+  }
+
+  backend_http_settings {
+    name                  = "backend-settings"
+    cookie_based_affinity = "Disabled"
+    port                  = 443
+    protocol              = "Https"
+    request_timeout       = 60
+  }
+
+  http_listener {
+    name                           = "https-listener"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "https"
+    protocol                       = "Https"
+  }
+
+  request_routing_rule {
+    name                       = "routing-rule"
+    rule_type                  = "Basic"
+    http_listener_name         = "https-listener"
+    backend_address_pool_name  = "backend-pool"
+    backend_http_settings_name = "backend-settings"
+    priority                   = 100
+  }
+
   waf_configuration {
     enabled                  = true
-    firewall_mode           = "Prevention"
-    rule_set_type           = "OWASP"
-    rule_set_version        = "3.2"
-    file_upload_limit_mb    = 100
-    request_body_check      = true
+    firewall_mode            = "Prevention"
+    rule_set_type            = "OWASP"
+    rule_set_version         = "3.2"
+    file_upload_limit_mb     = 100
+    request_body_check       = true
     max_request_body_size_kb = 128
   }
 
@@ -179,12 +207,12 @@ resource "azurerm_monitor_diagnostic_setting" "keyvault" {
 }
 
 # Azure Policy Assignments
-resource "azurerm_policy_assignment" "security_benchmark" {
+resource "azurerm_subscription_policy_assignment" "security_benchmark" {
   name                 = "security-benchmark"
-  scope                = data.azurerm_subscription.current.id
+  subscription_id      = data.azurerm_subscription.current.id
   policy_definition_id = "/providers/Microsoft.Authorization/policySetDefinitions/1f3afdf9-d0c9-4c3d-847f-89da613e70a8"
-  description         = "Azure Security Benchmark policy initiative assignment"
-  display_name        = "Azure Security Benchmark"
+  description          = "Azure Security Benchmark policy initiative assignment"
+  display_name         = "Azure Security Benchmark"
 
   parameters = jsonencode({
     "effect" = {
