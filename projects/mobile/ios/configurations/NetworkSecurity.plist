@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        
+        <key>NSAllowsArbitraryLoadsInWebContent</key>
+        <false/>
+        
+        <key>NSAllowsLocalNetworking</key>
+        <false/>
+        
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>api.example.com</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.2</string>
+                <key>NSExceptionRequiresForwardSecrecy</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSPinnedDomains</key>
+                <dict>
+                    <key>api.example.com</key>
+                    <dict>
+                        <key>NSIncludesSubdomains</key>
+                        <true/>
+                        <key>NSPinnedCAIdentities</key>
+                        <array>
+                            <dict>
+                                <key>SPKI-SHA256-BASE64</key>
+                                <string>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</string>
+                            </dict>
+                        </array>
+                    </dict>
+                </dict>
+            </dict>
+            
+            <key>auth.example.com</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.2</string>
+                <key>NSExceptionRequiresForwardSecrecy</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSPinnedDomains</key>
+                <dict>
+                    <key>auth.example.com</key>
+                    <dict>
+                        <key>NSIncludesSubdomains</key>
+                        <true/>
+                        <key>NSPinnedCAIdentities</key>
+                        <array>
+                            <dict>
+                                <key>SPKI-SHA256-BASE64</key>
+                                <string>BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</string>
+                            </dict>
+                        </array>
+                    </dict>
+                </dict>
+            </dict>
+        </dict>
+    </dict>
+    
+    <key>NSRequiresCertificateTransparency</key>
+    <true/>
+    
+    <key>NSAllowsArbitraryLoadsForMedia</key>
+    <false/>
+    
+    <key>NSAllowsArbitraryLoadsInWebContent</key>
+    <false/>
+    
+    <key>NSRequiresWebsiteDataAccess</key>
+    <true/>
+    
+    <key>NSWebsiteDataAcceptedDomains</key>
+    <array>
+        <string>example.com</string>
+    </array>
+</dict>
+</plist>

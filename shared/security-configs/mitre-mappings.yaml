@@ -1,0 +1,241 @@
+# MITRE ATT&CK Framework Mappings for Zero Trust Security
+apiVersion: security.config/v1
+kind: MitreMapping
+metadata:
+  name: zero-trust-security-mapping
+  description: "MITRE ATT&CK mappings for zero trust security controls"
+
+mappings:
+  # Initial Access
+  - tacticId: TA0001
+    tacticName: "Initial Access"
+    techniques:
+      - techniqueId: T1078
+        techniqueName: "Valid Accounts"
+        controls:
+          - name: "identity-verification"
+            file: "identity/keycloak/realm-config.yaml"
+            description: "Identity verification and MFA"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "use-least-privilege"
+          - name: "access-policies"
+            file: "policies/authorization/opa-policies.rego"
+            description: "Access policy enforcement"
+            zeroTrustPrinciples:
+              - "never-trust"
+              - "assume-breach"
+
+  # Execution
+  - tacticId: TA0002
+    tacticName: "Execution"
+    techniques:
+      - techniqueId: T1059
+        techniqueName: "Command and Scripting Interpreter"
+        controls:
+          - name: "workload-identity"
+            file: "identity/vault/policies/developer-policy.hcl"
+            description: "Workload identity controls"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "use-least-privilege"
+          - name: "runtime-authorization"
+            file: "policies/authorization/opa-policies.rego"
+            description: "Runtime authorization checks"
+            zeroTrustPrinciples:
+              - "never-trust"
+              - "verify-explicitly"
+
+  # Persistence
+  - tacticId: TA0003
+    tacticName: "Persistence"
+    techniques:
+      - techniqueId: T1098
+        techniqueName: "Account Manipulation"
+        controls:
+          - name: "identity-governance"
+            file: "identity/keycloak/realm-config.yaml"
+            description: "Identity lifecycle management"
+            zeroTrustPrinciples:
+              - "use-least-privilege"
+              - "verify-explicitly"
+          - name: "access-review"
+            file: "policies/authorization/opa-policies.rego"
+            description: "Access review policies"
+            zeroTrustPrinciples:
+              - "never-trust"
+              - "assume-breach"
+
+  # Privilege Escalation
+  - tacticId: TA0004
+    tacticName: "Privilege Escalation"
+    techniques:
+      - techniqueId: T1548
+        techniqueName: "Abuse Elevation Control Mechanism"
+        controls:
+          - name: "vault-policies"
+            file: "identity/vault/policies/admin-policy.hcl"
+            description: "Privileged access management"
+            zeroTrustPrinciples:
+              - "use-least-privilege"
+              - "verify-explicitly"
+          - name: "authorization-policies"
+            file: "policies/authorization/opa-policies.rego"
+            description: "Authorization policy enforcement"
+            zeroTrustPrinciples:
+              - "never-trust"
+              - "assume-breach"
+
+  # Defense Evasion
+  - tacticId: TA0005
+    tacticName: "Defense Evasion"
+    techniques:
+      - techniqueId: T1550
+        techniqueName: "Use Alternate Authentication Material"
+        controls:
+          - name: "credential-protection"
+            file: "identity/vault/vault-config.hcl"
+            description: "Credential and secret protection"
+            zeroTrustPrinciples:
+              - "encrypt-all-data"
+              - "verify-explicitly"
+          - name: "token-validation"
+            file: "identity/keycloak/realm-config.yaml"
+            description: "Token validation and verification"
+            zeroTrustPrinciples:
+              - "never-trust"
+              - "verify-explicitly"
+
+  # Credential Access
+  - tacticId: TA0006
+    tacticName: "Credential Access"
+    techniques:
+      - techniqueId: T1555
+        techniqueName: "Credentials from Password Stores"
+        controls:
+          - name: "secret-management"
+            file: "identity/vault/vault-config.hcl"
+            description: "Secret management and rotation"
+            zeroTrustPrinciples:
+              - "encrypt-all-data"
+              - "use-least-privilege"
+          - name: "credential-lifecycle"
+            file: "identity/keycloak/realm-config.yaml"
+            description: "Credential lifecycle management"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "assume-breach"
+
+detectionRules:
+  # Detection Rules for Identity
+  - tacticId: TA0001
+    rules:
+      - name: "Suspicious Authentication"
+        description: "Detect suspicious authentication patterns"
+        query: |
+          source = 'keycloak' and event.type = 'LOGIN' 
+          and event.result = 'FAILED' and count > threshold
+        severity: HIGH
+        response: "Enforce additional authentication factors"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+          - "assume-breach"
+
+  # Detection Rules for Authorization
+  - tacticId: TA0004
+    rules:
+      - name: "Policy Violation"
+        description: "Detect authorization policy violations"
+        query: |
+          source = 'opa' and decision.result = 'deny' 
+          and count > threshold
+        severity: CRITICAL
+        response: "Block access and initiate investigation"
+        zeroTrustPrinciples:
+          - "never-trust"
+          - "use-least-privilege"
+
+mitigations:
+  # Identity Mitigations
+  - tacticId: TA0001
+    strategies:
+      - name: "Identity Controls"
+        description: "Implement zero trust identity controls"
+        implementation:
+          - "Multi-factor authentication"
+          - "Continuous authentication"
+          - "Identity verification"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+          - "use-least-privilege"
+
+  # Access Control Mitigations
+  - tacticId: TA0004
+    strategies:
+      - name: "Access Controls"
+        description: "Implement zero trust access controls"
+        implementation:
+          - "Policy-based access control"
+          - "Just-in-time access"
+          - "Continuous authorization"
+        zeroTrustPrinciples:
+          - "never-trust"
+          - "assume-breach"
+
+metrics:
+  # Identity Metrics
+  - category: "Identity Security"
+    metrics:
+      - name: "authentication_failures"
+        description: "Count of authentication failures"
+        query: |
+          sum(rate(authentication_failure_total[5m]))
+        threshold: 10
+        severity: HIGH
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+  # Authorization Metrics
+  - category: "Authorization Security"
+    metrics:
+      - name: "policy_violations"
+        description: "Count of policy violations"
+        query: |
+          sum(rate(policy_violation_total[5m]))
+        threshold: 5
+        severity: CRITICAL
+        zeroTrustPrinciples:
+          - "never-trust"
+
+reporting:
+  # Security Reports
+  schedules:
+    - name: "daily-identity-report"
+      schedule: "0 8 * * *"
+      format: "pdf"
+      sections:
+        - "Identity Status"
+        - "Authentication Events"
+        - "Policy Violations"
+        - "Access Reviews"
+      distribution:
+        - "security-team@example.com"
+        - "identity-team@example.com"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "weekly-zero-trust-report"
+      schedule: "0 8 * * 1"
+      format: "pdf"
+      sections:
+        - "Zero Trust Posture"
+        - "Control Effectiveness"
+        - "Risk Assessment"
+        - "Recommendations"
+      distribution:
+        - "security-leadership@example.com"
+        - "architecture-team@example.com"
+      zeroTrustPrinciples:
+        - "assume-breach"
+        - "use-least-privilege"

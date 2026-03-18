@@ -1,0 +1,182 @@
+{
+  "realm": "zero-trust",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "bruteForceProtected": true,
+  "failureFactor": 3,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "maxDeltaTimeSeconds": 43200,
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "passwordPolicy": "length(8)",
+  "defaultRoles": ["user"],
+  "requiredCredentials": ["password"],
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "smtpServer": {
+    "host": "mailhog",
+    "port": "1025",
+    "from": "no-reply@portfolio.local",
+    "fromDisplayName": "Zero Trust Security",
+    "ssl": false,
+    "starttls": false,
+    "auth": false
+  },
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak",
+  "adminTheme": "keycloak",
+  "emailTheme": "keycloak",
+  "eventsEnabled": true,
+  "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "LOGOUT_ERROR",
+    "REGISTER",
+    "REGISTER_ERROR",
+    "UPDATE_PASSWORD",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGIN_ERROR"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "clients": [
+    {
+      "clientId": "demo-app",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "demo-app-secret",
+      "redirectUris": ["http://localhost:3000/*", "http://demo-app:3000/*"],
+      "webOrigins": ["http://localhost:3000", "http://demo-app:3000"],
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Administrator role with full access" },
+      {
+        "name": "developer",
+        "description": "Developer role with limited access"
+      },
+      { "name": "auditor", "description": "Auditor role for security review" }
+    ]
+  },
+  "groups": [
+    {
+      "name": "security-team",
+      "path": "/security-team",
+      "realmRoles": ["admin"],
+      "subGroups": []
+    },
+    {
+      "name": "development-team",
+      "path": "/development-team",
+      "realmRoles": ["developer"],
+      "subGroups": []
+    },
+    {
+      "name": "audit-team",
+      "path": "/audit-team",
+      "realmRoles": ["auditor"],
+      "subGroups": []
+    }
+  ],
+  "users": [
+    {
+      "username": "admin-user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@portfolio.local",
+      "firstName": "Admin",
+      "lastName": "User",
+      "credentials": [
+        { "type": "password", "value": "Admin@1234", "temporary": false }
+      ],
+      "realmRoles": ["admin"],
+      "groups": ["/security-team"]
+    },
+    {
+      "username": "dev-user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dev@portfolio.local",
+      "firstName": "Dev",
+      "lastName": "User",
+      "credentials": [
+        { "type": "password", "value": "Dev@1234", "temporary": false }
+      ],
+      "realmRoles": ["developer"],
+      "groups": ["/development-team"]
+    },
+    {
+      "username": "auditor-user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "auditor@portfolio.local",
+      "firstName": "Audit",
+      "lastName": "User",
+      "credentials": [
+        { "type": "password", "value": "Audit@1234", "temporary": false }
+      ],
+      "realmRoles": ["auditor"],
+      "groups": ["/audit-team"]
+    }
+  ],
+  "requiredActions": [
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30
+    }
+  ]
+}

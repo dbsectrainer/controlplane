@@ -1,0 +1,242 @@
+apiVersion: compliance.security.io/v1
+kind: ComplianceFramework
+metadata:
+  name: hipaa-framework
+  namespace: compliance
+spec:
+  framework: HIPAA
+  version: "2023"
+  description: "HIPAA Security Rule Compliance Controls"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: administrative-safeguards
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308"
+  title: "Security Management Process"
+  requirements:
+    - "Risk Analysis (§164.308(a)(1)(ii)(A))"
+    - "Risk Management (§164.308(a)(1)(ii)(B))"
+    - "Sanction Policy (§164.308(a)(1)(ii)(C))"
+    - "Information System Activity Review (§164.308(a)(1)(ii)(D))"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "risk-assessment"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/hipaa/risk-assessment.pdf"
+      - name: "activity-review"
+        type: "log-analysis"
+        resource: "audit-logs"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: assigned-security-responsibility
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308(a)(2)"
+  title: "Assigned Security Responsibility"
+  requirements:
+    - "Identify security official"
+    - "Document responsibilities"
+  validation:
+    type: "periodic"
+    interval: "365d"
+    checks:
+      - name: "security-officer"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/hipaa/security-officer.pdf"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: workforce-security
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308(a)(3)"
+  title: "Workforce Security"
+  requirements:
+    - "Authorization and/or Supervision"
+    - "Workforce Clearance Procedure"
+    - "Termination Procedures"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "access-review"
+        type: "config-check"
+        resource: "iam"
+      - name: "termination-workflow"
+        type: "workflow-check"
+        resource: "hr-system"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: information-access-management
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308(a)(4)"
+  title: "Information Access Management"
+  requirements:
+    - "Isolating Healthcare Clearinghouse Functions"
+    - "Access Authorization"
+    - "Access Establishment and Modification"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "access-controls"
+        type: "config-check"
+        resource: "rbac"
+      - name: "access-reviews"
+        type: "periodic-check"
+        interval: "90d"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: security-awareness-training
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308(a)(5)"
+  title: "Security Awareness and Training"
+  requirements:
+    - "Security Reminders"
+    - "Protection from Malicious Software"
+    - "Log-in Monitoring"
+    - "Password Management"
+  validation:
+    type: "periodic"
+    interval: "30d"
+    checks:
+      - name: "training-completion"
+        type: "metric"
+        query: "security_training_completion > 0.95"
+      - name: "malware-protection"
+        type: "config-check"
+        resource: "endpoint-security"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: security-incident-procedures
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308(a)(6)"
+  title: "Security Incident Procedures"
+  requirements:
+    - "Response and Reporting"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "incident-response"
+        type: "metric"
+        query: "incident_response_time < 24h"
+      - name: "incident-reporting"
+        type: "workflow-check"
+        resource: "incident-management"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: contingency-plan
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Administrative Safeguards"
+  control: "§164.308(a)(7)"
+  title: "Contingency Plan"
+  requirements:
+    - "Data Backup Plan"
+    - "Disaster Recovery Plan"
+    - "Emergency Mode Operation Plan"
+    - "Testing and Revision"
+    - "Applications and Data Criticality Analysis"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "backup-verification"
+        type: "system-check"
+        resource: "backup-system"
+      - name: "dr-testing"
+        type: "test-execution"
+        scenario: "disaster-recovery"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: technical-safeguards
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Technical Safeguards"
+  control: "§164.312"
+  title: "Technical Safeguards"
+  requirements:
+    - "Access Control (§164.312(a)(1))"
+    - "Audit Controls (§164.312(b))"
+    - "Integrity (§164.312(c)(1))"
+    - "Person or Entity Authentication (§164.312(d))"
+    - "Transmission Security (§164.312(e)(1))"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "encryption-check"
+        type: "config-check"
+        resource: "storage"
+        query: "encryption.enabled == true"
+      - name: "audit-logging"
+        type: "log-check"
+        resource: "audit-logs"
+      - name: "authentication-check"
+        type: "config-check"
+        resource: "authentication"
+        query: "mfa.enabled == true"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: physical-safeguards
+  namespace: compliance
+spec:
+  framework: HIPAA
+  category: "Physical Safeguards"
+  control: "§164.310"
+  title: "Physical Safeguards"
+  requirements:
+    - "Facility Access Controls (§164.310(a)(1))"
+    - "Workstation Use (§164.310(b))"
+    - "Workstation Security (§164.310(c))"
+    - "Device and Media Controls (§164.310(d)(1))"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "facility-access"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/hipaa/facility-access.pdf"
+      - name: "device-inventory"
+        type: "system-check"
+        resource: "asset-management"

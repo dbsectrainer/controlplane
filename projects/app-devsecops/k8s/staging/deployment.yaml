@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: project3-staging
+  namespace: staging
+  labels:
+    app: project3
+    env: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: project3
+      env: staging
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: project3
+        env: staging
+    spec:
+      containers:
+        - name: project3
+          image: __CI_REGISTRY_IMAGE__:__CI_COMMIT_SHA__
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: staging
+            - name: PORT
+              value: "3000"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      imagePullSecrets:
+        - name: registry-credentials

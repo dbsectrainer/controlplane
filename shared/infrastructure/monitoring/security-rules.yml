@@ -1,0 +1,57 @@
+groups:
+  - name: security.rules
+    rules:
+      # Authentication Failures — Scenario 1 trigger
+      - alert: HighAuthenticationFailures
+        expr: increase(keycloak_failed_login_attempts_total[5m]) > 3
+        for: 10s
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "High rate of authentication failures"
+          description: "{{ $value }} authentication failures in 5 minutes on {{ $labels.realm }}"
+
+      # OPA policy violations — Scenario 2 trigger
+      - alert: PolicyViolations
+        expr: increase(opa_decision_logs_total{result="false"}[5m]) > 0
+        for: 10s
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "OPA policy violations detected"
+          description: "{{ $value }} policy decisions denied in the last 5 minutes"
+
+      # Compliance drift — Scenario 3 trigger
+      - alert: ComplianceDrift
+        expr: compliance_controls_failing_total > 0
+        for: 10s
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Compliance control failure detected"
+          description: "{{ $value }} compliance controls are failing across {{ $labels.framework }}"
+
+      # Vault sealed
+      - alert: VaultSealed
+        expr: vault_core_unsealed == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Vault is sealed"
+          description: "Vault instance is sealed — secrets unavailable"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 30 seconds"

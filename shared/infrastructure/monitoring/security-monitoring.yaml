@@ -1,0 +1,261 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: security-monitor
+  namespace: security
+  labels:
+    app.kubernetes.io/part-of: security
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: security-alerts
+  namespace: security
+spec:
+  groups:
+  - name: security.rules
+    rules:
+    # Authentication Failures
+    - alert: HighAuthenticationFailures
+      expr: |
+        sum(rate(authentication_failures_total{namespace="security"}[5m])) > 10
+      for: 5m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: High rate of authentication failures
+        description: Authentication failures rate is {{ $value }} per second
+
+    # MFA Verification Failures
+    - alert: MFAVerificationFailures
+      expr: |
+        sum(rate(mfa_verification_failures_total{namespace="security"}[5m])) > 5
+      for: 5m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: High rate of MFA verification failures
+        description: MFA verification failures rate is {{ $value }} per second
+
+    # Unauthorized Access Attempts
+    - alert: UnauthorizedAccessAttempts
+      expr: |
+        sum(rate(unauthorized_access_attempts_total{namespace="security"}[5m])) > 20
+      for: 5m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: High rate of unauthorized access attempts
+        description: Unauthorized access attempts rate is {{ $value }} per second
+
+    # Vault Seal Status
+    - alert: VaultSealed
+      expr: |
+        vault_sealed{namespace="security"} > 0
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: Vault is sealed
+        description: Vault instance {{ $labels.instance }} is sealed
+
+    # Certificate Expiry
+    - alert: CertificateExpiryWarning
+      expr: |
+        (cert_expiry - time()) / 86400 < 30
+      for: 1h
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: Certificate expiring soon
+        description: Certificate {{ $labels.cert_name }} will expire in {{ $value }} days
+
+    # Policy Violations
+    - alert: PolicyViolations
+      expr: |
+        sum(rate(policy_violations_total{namespace="security"}[5m])) > 0
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: Policy violations detected
+        description: {{ $value }} policy violations detected in the last 5 minutes
+
+    # Network Policy Violations
+    - alert: NetworkPolicyViolations
+      expr: |
+        sum(rate(network_policy_violations_total{namespace="security"}[5m])) > 0
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: Network policy violations detected
+        description: {{ $value }} network policy violations detected
+
+    # Privilege Escalation Attempts
+    - alert: PrivilegeEscalationAttempts
+      expr: |
+        sum(rate(privilege_escalation_attempts_total{namespace="security"}[5m])) > 0
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: Privilege escalation attempts detected
+        description: {{ $value }} privilege escalation attempts detected
+
+    # Secret Access Monitoring
+    - alert: UnauthorizedSecretAccess
+      expr: |
+        sum(rate(unauthorized_secret_access_total{namespace="security"}[5m])) > 0
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: Unauthorized secret access attempts detected
+        description: {{ $value }} unauthorized secret access attempts detected
+
+    # Service Account Token Usage
+    - alert: ServiceAccountTokenMisuse
+      expr: |
+        sum(rate(service_account_token_misuse_total{namespace="security"}[5m])) > 0
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: Service account token misuse detected
+        description: Potential service account token misuse detected
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-dashboard
+  namespace: security
+  labels:
+    grafana_dashboard: "true"
+data:
+  security-overview.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "title": "Security Events Overview",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": [],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Security Overview",
+      "version": 0,
+      "weekStart": ""
+    }

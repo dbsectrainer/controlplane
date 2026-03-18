@@ -1,0 +1,344 @@
+# Behavioral Analytics Configuration for Zero Trust Security
+apiVersion: security.analytics/v1
+kind: BehavioralAnalytics
+metadata:
+  name: zero-trust-behavioral-analytics
+  description: "Behavioral analysis for zero trust security monitoring"
+
+dataSources:
+  # Identity Events
+  - name: "identity-events"
+    type: "identity"
+    source:
+      type: "keycloak"
+      config:
+        url: "${KEYCLOAK_URL}"
+        realm: "${KEYCLOAK_REALM}"
+      fields:
+        - name: "user.id"
+          type: "keyword"
+        - name: "event.type"
+          type: "keyword"
+        - name: "authentication.method"
+          type: "keyword"
+        - name: "authentication.factors"
+          type: "keyword"
+        - name: "client.id"
+          type: "keyword"
+        - name: "source.ip"
+          type: "ip"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+  # Access Activity
+  - name: "access-activity"
+    type: "access"
+    source:
+      type: "vault"
+      metrics:
+        - name: "access_requests_total"
+          labels:
+            - "user"
+            - "role"
+            - "resource"
+        - name: "access_denials_total"
+          labels:
+            - "user"
+            - "policy"
+            - "resource"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "assume-breach"
+
+  # Policy Decisions
+  - name: "policy-decisions"
+    type: "policy"
+    source:
+      type: "opa"
+      metrics:
+        - name: "policy_decisions_total"
+          labels:
+            - "policy"
+            - "decision"
+            - "subject"
+        - name: "policy_violations_total"
+          labels:
+            - "policy"
+            - "severity"
+            - "subject"
+      zeroTrustPrinciples:
+        - "never-trust"
+        - "verify-explicitly"
+
+behaviorProfiles:
+  # Identity Behavior Patterns
+  - name: "identity-behavior"
+    type: "identity"
+    baselineWindow: "30d"
+    features:
+      - name: "authentication-patterns"
+        source: "identity-events"
+        field: "authentication.method"
+        aggregation: "cardinality"
+        interval: "1h"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+      - name: "location-patterns"
+        source: "identity-events"
+        field: "source.ip"
+        aggregation: "cardinality"
+        interval: "1h"
+        zeroTrustPrinciples:
+          - "never-trust"
+      - name: "factor-usage"
+        source: "identity-events"
+        field: "authentication.factors"
+        aggregation: "count"
+        interval: "1h"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+  # Access Behavior Patterns
+  - name: "access-behavior"
+    type: "access"
+    baselineWindow: "14d"
+    features:
+      - name: "resource-access"
+        source: "access-activity"
+        metric: "access_requests_total"
+        aggregation: "rate"
+        interval: "5m"
+        zeroTrustPrinciples:
+          - "use-least-privilege"
+      - name: "access-denials"
+        source: "access-activity"
+        metric: "access_denials_total"
+        aggregation: "rate"
+        interval: "5m"
+        zeroTrustPrinciples:
+          - "assume-breach"
+
+  # Policy Behavior Patterns
+  - name: "policy-behavior"
+    type: "policy"
+    baselineWindow: "7d"
+    features:
+      - name: "policy-decisions"
+        source: "policy-decisions"
+        metric: "policy_decisions_total"
+        aggregation: "rate"
+        interval: "5m"
+        zeroTrustPrinciples:
+          - "never-trust"
+      - name: "policy-violations"
+        source: "policy-decisions"
+        metric: "policy_violations_total"
+        aggregation: "rate"
+        interval: "5m"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+anomalyDetection:
+  # Statistical Methods
+  methods:
+    - name: "mad"
+      type: "statistical"
+      config:
+        threshold: 3.5
+        minDataPoints: 30
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+    - name: "isolation-forest"
+      type: "ml"
+      config:
+        contamination: 0.01
+        features:
+          - "authentication-patterns"
+          - "location-patterns"
+          - "factor-usage"
+        zeroTrustPrinciples:
+          - "never-trust"
+
+    - name: "dbscan"
+      type: "ml"
+      config:
+        eps: 0.5
+        minSamples: 5
+        features:
+          - "resource-access"
+          - "access-denials"
+          - "policy-violations"
+        zeroTrustPrinciples:
+          - "assume-breach"
+
+  # Anomaly Rules
+  rules:
+    - name: "identity-anomaly"
+      description: "Detect anomalous identity behavior"
+      scope: "identity-behavior"
+      conditions:
+        - feature: "authentication-patterns"
+          method: "mad"
+          threshold: 3.0
+        - feature: "location-patterns"
+          method: "isolation-forest"
+          threshold: 0.95
+        - feature: "factor-usage"
+          method: "mad"
+          threshold: 2.5
+      actions:
+        - "enforce_additional_factors"
+        - "alert_security_team"
+        - "restrict_access"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "access-anomaly"
+      description: "Detect anomalous access patterns"
+      scope: "access-behavior"
+      conditions:
+        - feature: "resource-access"
+          method: "dbscan"
+          threshold: "outlier"
+        - feature: "access-denials"
+          method: "mad"
+          threshold: 3.0
+      actions:
+        - "revoke_access"
+        - "trigger_investigation"
+        - "increase_monitoring"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "assume-breach"
+
+responseActions:
+  # Automated Responses
+  actions:
+    - name: "enforce_additional_factors"
+      type: "identity"
+      config:
+        action: "require_mfa"
+        duration: "24h"
+        notifyUser: true
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+    - name: "restrict_access"
+      type: "access"
+      config:
+        action: "apply_restrictions"
+        scope: "user"
+        duration: "12h"
+        notifyTeam: true
+        zeroTrustPrinciples:
+          - "use-least-privilege"
+
+monitoring:
+  # Monitoring Configuration
+  metrics:
+    - name: "anomaly_detection_rate"
+      type: "counter"
+      labels:
+        - "rule"
+        - "severity"
+        - "principle"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+
+    - name: "behavior_risk_score"
+      type: "gauge"
+      labels:
+        - "user"
+        - "behavior"
+        - "risk"
+      zeroTrustPrinciples:
+        - "never-trust"
+
+alerts:
+  # Alert Rules
+  rules:
+    - name: "high-risk-behavior"
+      expr: |
+        behavior_risk_score > 0.8
+      for: "15m"
+      labels:
+        severity: critical
+      annotations:
+        summary: "High risk behavior detected"
+        zeroTrustPrinciples:
+          - "assume-breach"
+
+    - name: "authentication-anomaly"
+      expr: |
+        sum(rate(authentication_anomalies[5m])) > 10
+      for: "5m"
+      labels:
+        severity: warning
+      annotations:
+        summary: "Unusual authentication patterns detected"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+reporting:
+  # Reporting Configuration
+  schedules:
+    - name: "daily-behavior-report"
+      schedule: "0 6 * * *"
+      format: "pdf"
+      sections:
+        - "Identity Behavior Analysis"
+        - "Access Patterns"
+        - "Policy Decisions"
+        - "Anomaly Summary"
+      distribution:
+        - "security-team@example.com"
+        - "identity-team@example.com"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "weekly-analytics"
+      schedule: "0 7 * * 1"
+      format: "pdf"
+      sections:
+        - "Behavioral Trends"
+        - "Risk Analysis"
+        - "Control Effectiveness"
+        - "Recommendations"
+      distribution:
+        - "security-leadership@example.com"
+        - "risk-team@example.com"
+      zeroTrustPrinciples:
+        - "assume-breach"
+        - "use-least-privilege"
+
+visualization:
+  # Visualization Configuration
+  dashboards:
+    - name: "zero-trust-analytics"
+      type: "grafana"
+      panels:
+        - title: "Identity Risk Scores"
+          metrics:
+            - "authentication-patterns"
+            - "location-patterns"
+          visualization: "heatmap"
+          zeroTrustPrinciples:
+            - "verify-explicitly"
+        - title: "Access Patterns"
+          metrics:
+            - "resource-access"
+            - "access-denials"
+          visualization: "time-series"
+          zeroTrustPrinciples:
+            - "never-trust"
+        - title: "Policy Enforcement"
+          metrics:
+            - "policy-decisions"
+            - "policy-violations"
+          visualization: "status-panel"
+          zeroTrustPrinciples:
+            - "use-least-privilege"

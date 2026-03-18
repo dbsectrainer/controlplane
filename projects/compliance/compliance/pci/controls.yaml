@@ -1,0 +1,305 @@
+apiVersion: compliance.security.io/v1
+kind: ComplianceFramework
+metadata:
+  name: pci-dss-framework
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  version: "4.0"
+  description: "Payment Card Industry Data Security Standard Controls"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-1
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Network Security"
+  control: "Requirement 1"
+  title: "Install and Maintain Network Security Controls"
+  requirements:
+    - "Network security controls"
+    - "Network segmentation"
+    - "Security control documentation"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "firewall-rules"
+        type: "config-check"
+        resource: "network"
+      - name: "segmentation-check"
+        type: "network-scan"
+        tool: "nmap"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-2
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Configuration Management"
+  control: "Requirement 2"
+  title: "Apply Secure Configurations"
+  requirements:
+    - "Default security parameters"
+    - "Unnecessary functions removal"
+    - "System hardening"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "config-baseline"
+        type: "config-check"
+        resource: "systems"
+      - name: "hardening-check"
+        type: "security-scan"
+        tool: "openscap"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-3
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Data Protection"
+  control: "Requirement 3"
+  title: "Protect Stored Account Data"
+  requirements:
+    - "Encryption key management"
+    - "Secure storage of cardholder data"
+    - "Mask PAN when displayed"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "encryption-check"
+        type: "config-check"
+        resource: "storage"
+        query: "encryption.enabled == true"
+      - name: "key-rotation"
+        type: "metric"
+        query: "key_age < 365d"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-4
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Encryption"
+  control: "Requirement 4"
+  title: "Protect Cardholder Data with Strong Cryptography"
+  requirements:
+    - "Use strong cryptography"
+    - "Secure transmission of cardholder data"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "tls-check"
+        type: "config-check"
+        resource: "tls"
+        query: "min_version >= 1.2"
+      - name: "cipher-check"
+        type: "security-scan"
+        tool: "sslyze"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-5
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Malware Protection"
+  control: "Requirement 5"
+  title: "Protect All Systems from Malware"
+  requirements:
+    - "Anti-virus mechanisms"
+    - "Regular updates"
+    - "Active monitoring"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "av-status"
+        type: "config-check"
+        resource: "endpoint-security"
+      - name: "malware-scan"
+        type: "security-scan"
+        tool: "clamav"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-6
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Systems and Applications"
+  control: "Requirement 6"
+  title: "Develop and Maintain Secure Systems"
+  requirements:
+    - "Security vulnerabilities identification"
+    - "Secure software development"
+    - "Security patches management"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "vulnerability-scan"
+        type: "security-scan"
+        tool: "trivy"
+      - name: "patch-status"
+        type: "metric"
+        query: "systems_unpatched == 0"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-7
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Access Control"
+  control: "Requirement 7"
+  title: "Restrict Access to System Components"
+  requirements:
+    - "Role-based access control"
+    - "Least privilege principle"
+    - "Access review procedures"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "rbac-check"
+        type: "config-check"
+        resource: "iam"
+      - name: "privilege-review"
+        type: "periodic-check"
+        interval: "90d"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-8
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Authentication"
+  control: "Requirement 8"
+  title: "Identify and Authenticate Access"
+  requirements:
+    - "Unique user identification"
+    - "Multi-factor authentication"
+    - "Password requirements"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "mfa-check"
+        type: "config-check"
+        resource: "authentication"
+        query: "mfa.enabled == true"
+      - name: "password-policy"
+        type: "config-check"
+        resource: "authentication"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-9
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Physical Security"
+  control: "Requirement 9"
+  title: "Restrict Physical Access"
+  requirements:
+    - "Facility entry controls"
+    - "Media protection"
+    - "Device security"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "physical-access"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/pci/physical-access.pdf"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-10
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Monitoring"
+  control: "Requirement 10"
+  title: "Log and Monitor All Access"
+  requirements:
+    - "Audit logging mechanisms"
+    - "Secure audit trails"
+    - "Time synchronization"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "logging-check"
+        type: "config-check"
+        resource: "logging"
+      - name: "time-sync"
+        type: "system-check"
+        resource: "ntp"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-11
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Security Testing"
+  control: "Requirement 11"
+  title: "Test Security of Systems and Networks"
+  requirements:
+    - "Vulnerability scanning"
+    - "Penetration testing"
+    - "Intrusion detection"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "vulnerability-scan"
+        type: "security-scan"
+        tool: "nessus"
+      - name: "pentest-report"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/pci/pentest-report.pdf"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: requirement-12
+  namespace: compliance
+spec:
+  framework: PCI-DSS
+  category: "Security Policy"
+  control: "Requirement 12"
+  title: "Support Information Security Policy"
+  requirements:
+    - "Security policy maintenance"
+    - "Risk assessment process"
+    - "Incident response plan"
+  validation:
+    type: "periodic"
+    interval: "365d"
+    checks:
+      - name: "policy-review"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/pci/security-policy.pdf"
+      - name: "incident-response"
+        type: "workflow-check"
+        resource: "incident-management"

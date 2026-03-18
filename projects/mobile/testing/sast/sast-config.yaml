@@ -1,0 +1,162 @@
+# Static Application Security Testing Configuration
+
+# Global settings
+settings:
+  max_issues_per_rule: 10
+  fail_on_severity: high
+  ignore_paths:
+    - "**/test/**"
+    - "**/build/**"
+    - "**/dist/**"
+    - "**/node_modules/**"
+
+# Custom rules
+rules:
+  # Secrets Detection
+  - id: hardcoded-secrets
+    pattern: |
+      (?i)(password|secret|token|key|api[-_]?key|access[-_]?token|auth[-_]?token)[\s]*[=:]\s*['"][^'"]*['"]
+    message: "Potential hardcoded secret detected"
+    severity: critical
+    languages:
+      - swift
+      - kotlin
+      - java
+      - xml
+      - plist
+      - gradle
+
+  # Insecure Crypto
+  - id: weak-crypto
+    patterns:
+      - pattern: "MD5|SHA1"
+        message: "Weak cryptographic algorithm detected"
+      - pattern: "ECB mode"
+        message: "Insecure ECB mode detected"
+    severity: high
+    languages:
+      - swift
+      - kotlin
+      - java
+
+  # Insecure Data Storage
+  - id: insecure-data-storage
+    patterns:
+      - pattern: "NSUserDefaults|SharedPreferences"
+        message: "Potentially insecure data storage"
+      - pattern: "UserDefaults.standard"
+        message: "Consider using Keychain for sensitive data"
+    severity: medium
+    languages:
+      - swift
+      - kotlin
+      - java
+
+  # Input Validation
+  - id: input-validation
+    patterns:
+      - pattern: "loadUrl\\(.*\\)|webView\\.load"
+        message: "Ensure proper input validation for WebView URLs"
+      - pattern: "Intent\\(.*\\)|openURL"
+        message: "Validate deep link URLs"
+    severity: high
+    languages:
+      - swift
+      - kotlin
+      - java
+
+  # SSL/TLS Security
+  - id: ssl-validation
+    patterns:
+      - pattern: "allowsAnyHTTPSCertificate|TrustAllCerts"
+        message: "SSL certificate validation disabled"
+      - pattern: "setHostnameVerifier\\(.*ALLOW_ALL"
+        message: "Hostname verification disabled"
+    severity: critical
+    languages:
+      - swift
+      - kotlin
+      - java
+
+  # Logging Security
+  - id: secure-logging
+    pattern: "NSLog|println|System\\.out\\.println|Log\\.d|Log\\.v"
+    message: "Ensure sensitive data is not logged"
+    severity: medium
+    languages:
+      - swift
+      - kotlin
+      - java
+
+  # File Security
+  - id: file-security
+    patterns:
+      - pattern: "MODE_WORLD_READABLE|MODE_WORLD_WRITEABLE"
+        message: "Insecure file permissions"
+      - pattern: "NSTemporaryDirectory|getCacheDir"
+        message: "Ensure sensitive data is not stored in temporary directories"
+    severity: high
+    languages:
+      - swift
+      - kotlin
+      - java
+
+# Framework-specific rules
+frameworks:
+  ios:
+    rules:
+      - id: ios-app-transport
+        pattern: "NSAllowsArbitraryLoads.*true"
+        message: "App Transport Security disabled"
+        severity: critical
+
+      - id: ios-keychain
+        pattern: "kSecAttrAccessible.*AfterFirstUnlock"
+        message: "Consider using kSecAttrAccessibleWhenUnlockedThisDeviceOnly"
+        severity: medium
+
+  android:
+    rules:
+      - id: android-backup
+        pattern: 'android:allowBackup="true"'
+        message: "Auto backup enabled - ensure sensitive data is excluded"
+        severity: medium
+
+      - id: android-network
+        pattern: 'cleartextTrafficPermitted="true"'
+        message: "Cleartext traffic permitted"
+        severity: high
+
+# Custom checks
+custom_checks:
+  # Certificate Pinning
+  - name: certificate-pinning
+    description: "Verify SSL certificate pinning implementation"
+    check_function: |
+      def check_cert_pinning(file_content):
+          ios_pinning = "pinnedCertificates" in file_content
+          android_pinning = "CertificatePinner" in file_content
+          return ios_pinning or android_pinning
+
+  # Encryption Implementation
+  - name: encryption-check
+    description: "Verify proper encryption implementation"
+    check_function: |
+      def check_encryption(file_content):
+          strong_crypto = "AES" in file_content and "GCM" in file_content
+          weak_crypto = "DES" in file_content or "RC4" in file_content
+          return strong_crypto and not weak_crypto
+
+# Reporting configuration
+reporting:
+  format: json
+  output_file: sast-report.json
+  include_source: true
+  group_by:
+    - severity
+    - category
+  metrics:
+    - total_issues
+    - issues_by_severity
+    - issues_by_category
+    - false_positives

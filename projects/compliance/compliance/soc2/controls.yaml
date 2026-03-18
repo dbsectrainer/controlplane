@@ -1,0 +1,237 @@
+apiVersion: compliance.security.io/v1
+kind: ComplianceFramework
+metadata:
+  name: soc2-framework
+  namespace: compliance
+spec:
+  framework: SOC2
+  version: "2023"
+  description: "SOC 2 Type II Compliance Controls"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-access-control
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC1.0"
+  title: "Control Environment"
+  requirements:
+    - "Establish and maintain organizational structure"
+    - "Define internal control responsibilities"
+    - "Consider risk during objective setting"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "org-structure-review"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/org-structure.pdf"
+      - name: "roles-responsibilities"
+        type: "config-check"
+        resource: "rbac"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-communication
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC2.0"
+  title: "Communication and Information"
+  requirements:
+    - "Establish communication objectives"
+    - "Obtain relevant information"
+    - "Internal communication of objectives"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "policy-distribution"
+        type: "system-check"
+        resource: "documentation"
+      - name: "training-completion"
+        type: "metric"
+        query: "training_completion_rate > 0.95"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-risk-assessment
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC3.0"
+  title: "Risk Assessment"
+  requirements:
+    - "Specify risk assessment objectives"
+    - "Risk identification and analysis"
+    - "Risk mitigation planning"
+  validation:
+    type: "periodic"
+    interval: "30d"
+    checks:
+      - name: "vulnerability-scan"
+        type: "security-scan"
+        tool: "trivy"
+      - name: "risk-register"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/risk-register.xlsx"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-monitoring
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC4.0"
+  title: "Monitoring Activities"
+  requirements:
+    - "Establish monitoring baseline"
+    - "Perform monitoring activities"
+    - "Evaluate monitoring results"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "security-alerts"
+        type: "metric"
+        query: "security_incidents_unresolved == 0"
+      - name: "audit-logs"
+        type: "log-check"
+        resource: "audit-logs"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-logical-access
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC5.0"
+  title: "Logical and Physical Access"
+  requirements:
+    - "Access control policies"
+    - "Authentication mechanisms"
+    - "Authorization procedures"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "mfa-enabled"
+        type: "config-check"
+        resource: "authentication"
+        query: "mfa.enabled == true"
+      - name: "password-policy"
+        type: "config-check"
+        resource: "authentication"
+        query: "password.complexity == true"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-system-operations
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC6.0"
+  title: "System Operations"
+  requirements:
+    - "System configuration standards"
+    - "Change management procedures"
+    - "Incident response procedures"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "configuration-drift"
+        type: "config-check"
+        resource: "kubernetes"
+      - name: "incident-response"
+        type: "metric"
+        query: "incident_response_time < 1h"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-change-management
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC7.0"
+  title: "Change Management"
+  requirements:
+    - "Infrastructure change control"
+    - "Software development lifecycle"
+    - "Testing procedures"
+  validation:
+    type: "event-driven"
+    checks:
+      - name: "change-approval"
+        type: "workflow-check"
+        resource: "git"
+      - name: "test-coverage"
+        type: "metric"
+        query: "test_coverage >= 0.80"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-risk-mitigation
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC8.0"
+  title: "Risk Mitigation"
+  requirements:
+    - "Vendor management program"
+    - "Insurance coverage"
+    - "Business continuity planning"
+  validation:
+    type: "periodic"
+    interval: "90d"
+    checks:
+      - name: "vendor-assessment"
+        type: "document-review"
+        evidence:
+          - type: "document"
+            path: "/evidence/vendor-assessment.pdf"
+      - name: "business-continuity"
+        type: "test-execution"
+        scenario: "disaster-recovery"
+---
+apiVersion: compliance.security.io/v1
+kind: ComplianceControl
+metadata:
+  name: cc-additional-criteria
+  namespace: compliance
+spec:
+  framework: SOC2
+  category: "Common Criteria"
+  control: "CC9.0"
+  title: "Additional Criteria"
+  requirements:
+    - "Data encryption standards"
+    - "Security incident procedures"
+    - "Compliance monitoring"
+  validation:
+    type: "continuous"
+    checks:
+      - name: "encryption-check"
+        type: "config-check"
+        resource: "storage"
+        query: "encryption.enabled == true"
+      - name: "compliance-scan"
+        type: "security-scan"
+        tool: "compliance-scanner"

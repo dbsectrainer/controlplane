@@ -1,0 +1,246 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: security
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-identity-services
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: identity
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8443 # Keycloak
+        - protocol: TCP
+          port: 8200 # Vault
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53 # DNS
+        - protocol: TCP
+          port: 53 # DNS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-keycloak-db
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-vault-storage
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app: vault
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: vault-storage
+      ports:
+        - protocol: TCP
+          port: 8201 # Vault storage
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090 # Prometheus metrics
+        - protocol: TCP
+          port: 8080 # Health check endpoint
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-logging
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: logging
+      ports:
+        - protocol: TCP
+          port: 24224 # Fluentd
+        - protocol: TCP
+          port: 9200 # Elasticsearch
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-opa
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app: opa
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: security
+      ports:
+        - protocol: TCP
+          port: 8181 # OPA API
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53 # DNS
+        - protocol: TCP
+          port: 53 # DNS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cert-manager
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: cert-manager
+      ports:
+        - protocol: TCP
+          port: 443 # ACME protocol
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-istio-control
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+      ports:
+        - protocol: TCP
+          port: 15012 # Istio control plane
+        - protocol: TCP
+          port: 15014 # Istio telemetry
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-scraping
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090 # Prometheus metrics
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-tracing
+  namespace: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: security
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: tracing
+      ports:
+        - protocol: UDP
+          port: 6831 # Jaeger agent
+        - protocol: TCP
+          port: 14268 # Jaeger collector

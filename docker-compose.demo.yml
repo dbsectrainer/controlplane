@@ -1,0 +1,55 @@
+###############################################################################
+# docker-compose.demo.yml — Conference Demo Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.demo.yml up -d
+#
+# Overrides for conference use:
+# - Faster healthcheck intervals (demo moves quickly)
+# - attacker container always enabled (no --profile needed)
+# - Pre-seeded demo data
+###############################################################################
+
+services:
+  vault:
+    healthcheck:
+      interval: 5s
+      retries: 5
+
+  keycloak:
+    healthcheck:
+      interval: 10s
+      retries: 10
+      start_period: 20s
+
+  demo-app:
+    healthcheck:
+      interval: 5s
+      start_period: 10s
+
+  compliance-reporter:
+    healthcheck:
+      interval: 5s
+
+  # Override attacker to always run (no profile flag needed at a conference)
+  attacker:
+    profiles: []
+    restart: unless-stopped
+
+  # Lightweight log viewer for live demo (shows Falco-style alert stream)
+  demo-monitor:
+    image: alpine:3.19
+    container_name: portfolio-demo-monitor
+    volumes:
+      - ./shared/scripts:/scripts
+    command: >
+      sh -c "apk add --no-cache curl jq &&
+             echo 'Demo monitor ready. Watching for security events...' &&
+             while true; do
+               sleep 5
+               curl -s http://prometheus:9090/api/v1/query?query=up | jq -r '
+                 .data.result[] | [.metric.job, .value[1]] | @csv
+               ' 2>/dev/null | sed 's/\"//g; s/,/ = /; s/^/  [monitor] /' || true
+             done"
+    depends_on:
+      - prometheus
+    networks:
+      - portfolio-net

@@ -1,0 +1,89 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Development service with hot-reload
+  app-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      - ../src:/app/src
+      - ../package.json:/app/package.json
+      - ../package-lock.json:/app/package-lock.json
+    command: npm run dev
+    networks:
+      - app-network
+
+  # Test runner service
+  test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - NODE_ENV=test
+      - PORT=3000
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    command: npm test
+    networks:
+      - app-network
+
+  # Integration test service
+  test-integration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - NODE_ENV=test
+      - PORT=3000
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    command: npm run test:integration
+    networks:
+      - app-network
+
+  # Smoke test service
+  test-smoke:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - NODE_ENV=test
+      - PORT=3000
+      - TEST_URL=http://app:3000
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    command: npm run test:smoke
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

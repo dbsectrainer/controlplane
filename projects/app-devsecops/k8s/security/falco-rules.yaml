@@ -1,0 +1,113 @@
+customRules:
+  # Detect unauthorized process execution
+  - rule: Unauthorized Process Execution
+    desc: Detect execution of unauthorized processes in containers
+    condition: >
+      spawned_process and container
+      and not proc.name in (node, npm, sh, bash)
+      and container.image contains "project3"
+    output: >
+      Unauthorized process executed in container (user=%user.name
+      command=%proc.cmdline container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: WARNING
+    tags: [process, container]
+
+  # Detect sensitive file access
+  - rule: Sensitive File Access
+    desc: Detect access to sensitive files
+    condition: >
+      open_read and container
+      and fd.filename startswith "/etc/passwd"
+      and container.image contains "project3"
+    output: >
+      Sensitive file accessed in container (user=%user.name
+      file=%fd.filename container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: WARNING
+    tags: [filesystem, container]
+
+  # Detect network anomalies
+  - rule: Unexpected Network Connection
+    desc: Detect unexpected network connections
+    condition: >
+      evt.type=connect and evt.dir=< and container
+      and not fd.saddr in (127.0.0.1, ::1)
+      and not fd.sport in (3000, 9090)
+      and container.image contains "project3"
+    output: >
+      Unexpected network connection in container (user=%user.name
+      connection=%fd.name container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: WARNING
+    tags: [network, container]
+
+  # Detect privilege escalation
+  - rule: Privilege Escalation
+    desc: Detect privilege escalation attempts
+    condition: >
+      evt.type=setuid and evt.dir=> and container
+      and container.image contains "project3"
+    output: >
+      Privilege escalation attempt in container (user=%user.name
+      uid=%evt.arg.uid container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: CRITICAL
+    tags: [process, container]
+
+  # Detect package management
+  - rule: Package Management Detected
+    desc: Detect package management commands
+    condition: >
+      spawned_process and container
+      and proc.name in (apt, apt-get, npm, yarn, pip)
+      and container.image contains "project3"
+    output: >
+      Package management command executed in container (user=%user.name
+      command=%proc.cmdline container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: WARNING
+    tags: [process, container]
+
+  # Detect file system changes in sensitive directories
+  - rule: Sensitive Directory Changes
+    desc: Detect changes to sensitive directories
+    condition: >
+      (evt.type in (open, openat) and evt.is_open_write=true) and
+      fd.directory in (/etc, /usr/bin, /usr/sbin, /bin, /sbin) and
+      container and container.image contains "project3"
+    output: >
+      File modification in sensitive directory (user=%user.name
+      file=%fd.name container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: WARNING
+    tags: [filesystem, container]
+
+  # Detect shell spawning from unexpected processes
+  - rule: Unexpected Shell Spawn
+    desc: Detect shells spawned from unexpected processes
+    condition: >
+      spawned_process and container and
+      proc.name in (sh, bash, zsh) and
+      not proc.pname in (node, npm) and
+      container.image contains "project3"
+    output: >
+      Shell spawned from unexpected process (user=%user.name
+      shell=%proc.name parent=%proc.pname container_id=%container.id
+      container_name=%container.name image=%container.image)
+    priority: WARNING
+    tags: [process, container]
+
+  # Detect outbound connections to suspicious domains
+  - rule: Suspicious Outbound Connection
+    desc: Detect connections to potentially malicious domains
+    condition: >
+      evt.type=connect and evt.dir=< and container and
+      fd.sip.name contains "suspicious-domain" and
+      container.image contains "project3"
+    output: >
+      Suspicious outbound connection detected (user=%user.name
+      connection=%fd.name destination=%fd.sip.name
+      container_id=%container.id container_name=%container.name)
+    priority: WARNING
+    tags: [network, container]

@@ -1,0 +1,110 @@
+---
+env:
+  contexts:
+    - name: "DevSecOps Pipeline"
+      urls: ["http://localhost:3000"]
+      includePaths: ["http://localhost:3000.*"]
+      excludePaths: []
+      authentication:
+        method: "form"
+        parameters:
+          loginUrl: ""
+          loginRequestData: ""
+      sessionManagement:
+        method: "cookie"
+        parameters: {}
+
+alerts:
+  - name: "Cross Site Scripting (XSS)"
+    threshold: "Medium"
+  - name: "SQL Injection"
+    threshold: "Medium"
+  - name: "Remote OS Command Injection"
+    threshold: "Medium"
+  - name: "Remote Code Execution"
+    threshold: "Medium"
+  - name: "Directory Traversal"
+    threshold: "Medium"
+  - name: "External Redirect"
+    threshold: "Medium"
+  - name: "Shell Shock"
+    threshold: "Medium"
+  - name: "CRLF Injection"
+    threshold: "Medium"
+  - name: "Source Code Disclosure"
+    threshold: "Medium"
+  - name: "JWT Scan"
+    threshold: "Medium"
+  - name: "Weak Cryptography"
+    threshold: "Medium"
+
+rules:
+  - id: 10016
+    name: "Web Browser XSS Protection Not Enabled"
+    threshold: "Medium"
+  - id: 10020
+    name: "X-Frame-Options Header Not Set"
+    threshold: "Medium"
+  - id: 10021
+    name: "X-Content-Type-Options Header Missing"
+    threshold: "Medium"
+  - id: 10036
+    name: "Server Leaks Version Information"
+    threshold: "Medium"
+  - id: 10038
+    name: "Content Security Policy (CSP) Header Not Set"
+    threshold: "Medium"
+  - id: 10098
+    name: "Cross-Domain Misconfiguration"
+    threshold: "Medium"
+
+spider:
+  maxDuration: 60
+  threadCount: 10
+  postForm: true
+  processForm: true
+  parseComments: true
+  parseRobotsTxt: true
+  parseSitemapXml: true
+  handleODataParametersVisited: true
+  maxDepth: 10
+  maxChildren: 100
+  acceptCookies: true
+  handleParameters: "USE_ALL"
+
+ajaxSpider:
+  maxDuration: 60
+  maxCrawlDepth: 10
+  numberOfBrowsers: 2
+  clickDefaultElems: true
+  clickElemsOnce: true
+  randomInputs: true
+  reloadWait: 1000
+
+activeScan:
+  maxDuration: 120
+  threadPerHost: 2
+  hostPerScan: 2
+  maxRuleDuration: 30
+  maxScanDuration: 240
+  defaultPolicy: "Default Policy"
+  attackMode: "STANDARD"
+  showAdvancedDialog: false
+
+reporting:
+  template: "traditional-html"
+  title: "ZAP Security Test Report"
+  description: "This report contains the results of an automated security test."
+  displayReport: true
+  reportFileName: "zap-report.html"
+  reportFileNamePattern: "{{datetime}}-zap-report"
+  reportDir: "/zap/reports"
+
+automation:
+  enabled: true
+  jobName: "security-scan"
+  jobDescription: "Automated security scan of the application"
+  onFail: "WARN"
+  parameters:
+    failOnError: false
+    progressToStdout: true

@@ -1,0 +1,79 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: production
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: project3
+  namespace: production
+spec:
+  host: "project3-production.production.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: project3-policy
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: project3
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/production/sa/default"]
+      to:
+        - operation:
+            methods: ["GET"]
+            paths: ["/health", "/metrics", "/api/*"]
+        - operation:
+            methods: ["POST", "PUT"]
+            paths: ["/api/tasks*"]
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: project3
+  namespace: production
+spec:
+  hosts:
+    - "project3.example.com"
+  gateways:
+    - project3-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/api"
+      route:
+        - destination:
+            host: project3-production
+            port:
+              number: 3000
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: project3-gateway
+  namespace: production
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: project3-tls-cert
+      hosts:
+        - "project3.example.com"

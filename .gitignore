@@ -1,0 +1,149 @@
+# ============================================================
+# Node.js
+# ============================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn/
+dist/
+build/
+.cache/
+coverage/
+*.lcov
+.nyc_output/
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+.env.local
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+*.egg
+htmlcov/
+.coverage
+.coverage.*
+
+# ============================================================
+# Terraform
+# ============================================================
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ============================================================
+# Secrets & Credentials (NEVER commit these)
+# ============================================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+secrets/
+**/secrets/
+*.secret
+kubeconfig
+*.kubeconfig
+vault-token
+.vault-token
+service-account*.json
+*-credentials.json
+
+# ============================================================
+# Docker
+# ============================================================
+.docker/
+
+# ============================================================
+# Android
+# ============================================================
+projects/mobile/android/.gradle/
+projects/mobile/android/local.properties
+projects/mobile/android/app/build/
+projects/mobile/android/build/
+projects/mobile/android/*.jks
+projects/mobile/android/*.keystore
+projects/mobile/android/google-services.json
+
+# ============================================================
+# iOS / macOS
+# ============================================================
+projects/mobile/ios/Pods/
+projects/mobile/ios/*.xcworkspace/xcuserdata/
+projects/mobile/ios/*.xcodeproj/xcuserdata/
+projects/mobile/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+projects/mobile/ios/DerivedData/
+projects/mobile/ios/*.ipa
+projects/mobile/ios/*.dSYM.zip
+projects/mobile/ios/*.dSYM
+projects/mobile/ios/GoogleService-Info.plist
+.DS_Store
+
+# ============================================================
+# Logs & Runtime
+# ============================================================
+logs/
+*.log
+*.log.*
+pids/
+*.pid
+*.seed
+*.pid.lock
+tmp/
+temp/
+
+# ============================================================
+# IDE & Editor
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini

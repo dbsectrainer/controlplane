@@ -1,0 +1,338 @@
+###############################################################################
+# ControlPlane — Unified Demo Platform
+# Audience: hiring managers (local), enterprise clients, conference demos
+#
+# Quick start:
+#   ./shared/scripts/demo-setup.sh
+#   docker-compose up -d
+#
+# All services on portfolio-net (172.20.0.0/16)
+###############################################################################
+
+networks:
+  portfolio-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  vault-data:
+  keycloak-data:
+  prometheus-data:
+  grafana-data:
+  sonarqube-data:
+  mobsf-data:
+
+###############################################################################
+# TIER 1 — Shared Security Infrastructure
+###############################################################################
+services:
+  # ── HashiCorp Vault (dev mode — NOT for production) ──────────────────────
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: portfolio-vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_LOG_LEVEL: warn
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault-data:/vault/data
+    # Dev mode starts its own listener — no config file needed (config file would open a 2nd port 8200)
+    command: server -dev -dev-root-token-id=root
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - portfolio-net
+    # NOTE: dev mode does not persist across restarts. vault-init re-seeds on each startup.
+
+  vault-init:
+    image: hashicorp/vault:1.15
+    container_name: portfolio-vault-init
+    depends_on:
+      vault:
+        condition: service_healthy
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+    volumes:
+      - ./shared/infrastructure/vault/policies:/vault/policies
+      - ./shared/scripts/vault-init.sh:/vault/vault-init.sh
+    command: sh /vault/vault-init.sh
+    networks:
+      - portfolio-net
+    restart: "no"
+
+  # ── Keycloak (Identity Provider) ─────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: portfolio-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: WARN
+    ports:
+      - "8080:8080"
+      # Port 9000 (management) is used internally for healthcheck; SonarQube owns 9000 externally
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./shared/infrastructure/keycloak/realm.json:/opt/keycloak/data/import/realm.json
+    command: start-dev --import-realm
+    healthcheck:
+      # Keycloak 23+ exposes /health/ready on management port 9000
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && timeout 3 cat <&3 | grep -q UP",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    networks:
+      - portfolio-net
+
+  # ── Keycloak HTTPS Proxy ───────────────────────────────────────────────────
+  keycloak-proxy:
+    image: nginx:alpine
+    container_name: portfolio-keycloak-proxy
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./shared/infrastructure/nginx/keycloak.conf:/etc/nginx/conf.d/keycloak.conf:ro
+      - ./shared/infrastructure/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - portfolio-net
+    restart: "no"
+
+  # ── Open Policy Agent ─────────────────────────────────────────────────────
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: portfolio-opa
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./shared/infrastructure/opa/policies.rego:/policies/policies.rego
+    command: run --server --addr=0.0.0.0:8181 --log-level=error /policies
+    healthcheck:
+      # OPA image is scratch-based — use version command to verify process is alive
+      test: ["CMD", "/opa", "version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - portfolio-net
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: portfolio-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./shared/infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./shared/infrastructure/monitoring/security-rules.yml:/etc/prometheus/security-rules.yml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - portfolio-net
+
+  # ── Alertmanager ─────────────────────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: portfolio-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./shared/infrastructure/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--log.level=warn"
+    networks:
+      - portfolio-net
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: portfolio-grafana
+    ports:
+      - "3100:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_LOG_LEVEL: warn
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/security-overview.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./shared/infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - portfolio-net
+
+  # ── Mailpit (Mailhog replacement — native ARM64, catches all demo email) ────
+  mailhog:
+    image: axllent/mailpit:latest
+    container_name: portfolio-mailhog
+    ports:
+      - "8025:8025" # Web UI (Mailpit UI)
+      - "1025:1025" # SMTP
+    networks:
+      - portfolio-net
+
+  ###############################################################################
+  # TIER 2 — Application DevSecOps Pipeline
+  ###############################################################################
+
+  demo-app:
+    build:
+      context: ./projects/app-devsecops
+      dockerfile: docker/Dockerfile
+    container_name: portfolio-demo-app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: zero-trust
+      KEYCLOAK_CLIENT_ID: demo-app
+      KEYCLOAK_CLIENT_SECRET: demo-app-secret
+      OPA_URL: http://opa:8181
+    depends_on:
+      vault:
+        condition: service_healthy
+      opa:
+        condition: service_healthy
+      keycloak:
+        condition: service_started # app handles Keycloak connection lazily
+      vault-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - portfolio-net
+
+  sonarqube:
+    image: sonarqube:10.3-community
+    container_name: portfolio-sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - portfolio-net
+
+  ###############################################################################
+  # TIER 3 — Compliance Reporting
+  ###############################################################################
+
+  compliance-reporter:
+    build:
+      context: ./projects/compliance/reporter
+    container_name: portfolio-compliance
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./projects/compliance/compliance:/app/compliance:ro
+    environment:
+      PORT: "8088"
+      COMPLIANCE_DIR: /app/compliance
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8088/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - portfolio-net
+
+  ###############################################################################
+  # TIER 4 — Mobile Security (MobSF)
+  ###############################################################################
+
+  mobsf:
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    container_name: portfolio-mobsf
+    ports:
+      - "8008:8000"
+    volumes:
+      - mobsf-data:/home/mobsf/.MobSF
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:8000 > /dev/null || wget -qO- http://localhost:8000 > /dev/null",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - portfolio-net
+
+  ###############################################################################
+  # TIER 5 — Demo Attack Infrastructure
+  ###############################################################################
+
+  attacker:
+    image: alpine:3.19
+    container_name: portfolio-attacker
+    volumes:
+      - ./shared/scripts:/scripts
+    command: sh -c "apk add --no-cache curl jq && tail -f /dev/null"
+    depends_on:
+      demo-app:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - portfolio-net
+    profiles:
+      - demo

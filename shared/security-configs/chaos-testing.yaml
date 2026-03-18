@@ -1,0 +1,291 @@
+# Chaos Testing Configuration for Zero Trust Security
+apiVersion: chaos.security/v1
+kind: ChaosSuite
+metadata:
+  name: zero-trust-security-chaos
+  description: "Security chaos testing scenarios for zero trust architecture"
+
+scenarios:
+  # Identity Provider Chaos
+  - name: "idp-disruption"
+    description: "Test identity provider resilience"
+    targets:
+      - "keycloak"
+      - "identity-services"
+    chaos:
+      type: "identity"
+      actions:
+        - name: "authentication-failure"
+          duration: "5m"
+          config:
+            component: "keycloak"
+            failureMode: "service-degradation"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "never-trust"
+        - name: "token-service-disruption"
+          duration: "3m"
+          config:
+            component: "token-service"
+            failureMode: "token-validation-delay"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "assume-breach"
+
+  # Secret Management Chaos
+  - name: "vault-chaos"
+    description: "Test secret management resilience"
+    targets:
+      - "vault"
+      - "secret-stores"
+    chaos:
+      type: "secrets"
+      actions:
+        - name: "secret-retrieval-failure"
+          duration: "5m"
+          config:
+            component: "vault"
+            failureMode: "connection-failure"
+            zeroTrustPrinciples:
+              - "encrypt-all-data"
+              - "use-least-privilege"
+        - name: "key-rotation-disruption"
+          duration: "3m"
+          config:
+            component: "kms"
+            failureMode: "rotation-delay"
+            zeroTrustPrinciples:
+              - "encrypt-all-data"
+              - "verify-explicitly"
+
+  # Policy Engine Chaos
+  - name: "policy-engine-chaos"
+    description: "Test policy enforcement resilience"
+    targets:
+      - "opa"
+      - "policy-service"
+    chaos:
+      type: "policy"
+      actions:
+        - name: "policy-evaluation-failure"
+          duration: "5m"
+          config:
+            component: "opa"
+            failureMode: "evaluation-timeout"
+            zeroTrustPrinciples:
+              - "never-trust"
+              - "use-least-privilege"
+        - name: "policy-sync-disruption"
+          duration: "3m"
+          config:
+            component: "policy-store"
+            failureMode: "sync-failure"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "assume-breach"
+
+  # Access Control Chaos
+  - name: "access-control-chaos"
+    description: "Test access control resilience"
+    targets:
+      - "authorization-service"
+      - "rbac-service"
+    chaos:
+      type: "access"
+      actions:
+        - name: "permission-check-failure"
+          duration: "5m"
+          config:
+            component: "rbac"
+            failureMode: "check-timeout"
+            zeroTrustPrinciples:
+              - "use-least-privilege"
+              - "never-trust"
+        - name: "role-binding-disruption"
+          duration: "3m"
+          config:
+            component: "role-service"
+            failureMode: "binding-failure"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "assume-breach"
+
+validation:
+  # Validation Criteria
+  - name: "zero-trust-validation"
+    checks:
+      - name: "identity-verification"
+        criteria:
+          - "Authentication remains enforced"
+          - "MFA continues functioning"
+          - "Token validation is maintained"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+          - "never-trust"
+
+      - name: "access-control-validation"
+        criteria:
+          - "Policy enforcement remains active"
+          - "Least privilege is maintained"
+          - "Authorization checks continue"
+        zeroTrustPrinciples:
+          - "use-least-privilege"
+          - "assume-breach"
+
+monitoring:
+  # Chaos Test Monitoring
+  metrics:
+    - name: "security-violations"
+      collectors:
+        - type: "prometheus"
+          query: |
+            sum(rate(zero_trust_violations_total{test="chaos"}[5m]))
+        - type: "elasticsearch"
+          query: |
+            security_events.keyword: "chaos_test"
+    - name: "control-effectiveness"
+      collectors:
+        - type: "prometheus"
+          query: |
+            avg(zero_trust_control_effectiveness{test="chaos"})
+
+alerts:
+  # Alert Configuration
+  rules:
+    - name: "identity-verification-failure"
+      expr: |
+        identity_verification_success{type="critical"} < 0.95
+      for: "1m"
+      labels:
+        severity: critical
+        type: chaos-test
+      annotations:
+        summary: "Identity verification failure during chaos test"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+
+    - name: "policy-enforcement-failure"
+      expr: |
+        policy_enforcement_success{test="chaos"} < 1
+      for: "30s"
+      labels:
+        severity: critical
+        type: chaos-test
+      annotations:
+        summary: "Policy enforcement failure during chaos test"
+        zeroTrustPrinciples:
+          - "never-trust"
+
+recovery:
+  # Recovery Procedures
+  procedures:
+    - name: "identity-recovery"
+      steps:
+        - name: "restore-idp-config"
+          action: "reset-idp-config"
+          timeout: "5m"
+        - name: "verify-authentication"
+          action: "check-auth-status"
+          timeout: "2m"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "policy-recovery"
+      steps:
+        - name: "restore-policy-config"
+          action: "reset-policy-config"
+          timeout: "5m"
+        - name: "verify-enforcement"
+          action: "check-policy-status"
+          timeout: "2m"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "assume-breach"
+
+reporting:
+  # Test Reports
+  outputs:
+    - name: "chaos-test-report"
+      type: "pdf"
+      sections:
+        - "Executive Summary"
+        - "Zero Trust Control Tests"
+        - "Failure Analysis"
+        - "Recovery Metrics"
+      distribution:
+        - "security-team@example.com"
+        - "identity-team@example.com"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+        - "assume-breach"
+
+schedules:
+  # Test Schedules
+  - name: "daily-chaos"
+    schedule: "0 1 * * *"
+    scenarios:
+      - "idp-disruption"
+      - "policy-engine-chaos"
+    duration: "30m"
+    zeroTrustPrinciples:
+      - "verify-explicitly"
+      - "never-trust"
+
+  - name: "weekly-chaos"
+    schedule: "0 1 * * 0"
+    scenarios:
+      - "vault-chaos"
+      - "access-control-chaos"
+    duration: "1h"
+    zeroTrustPrinciples:
+      - "use-least-privilege"
+      - "assume-breach"
+
+cleanup:
+  # Cleanup Procedures
+  procedures:
+    - name: "reset-identity-services"
+      steps:
+        - "restore-default-policies"
+        - "verify-identity-state"
+      timeout: "10m"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "reset-access-controls"
+      steps:
+        - "restore-rbac-config"
+        - "verify-access-state"
+      timeout: "10m"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "assume-breach"
+
+notifications:
+  # Notification Configuration
+  channels:
+    - name: "security-alerts"
+      type: "slack"
+      channel: "#security-alerts"
+      events:
+        - "test-start"
+        - "test-failure"
+        - "test-completion"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "identity-team"
+      type: "email"
+      recipients:
+        - "identity-team@example.com"
+      events:
+        - "test-failure"
+        - "recovery-start"
+        - "recovery-completion"
+      zeroTrustPrinciples:
+        - "assume-breach"
+        - "use-least-privilege"

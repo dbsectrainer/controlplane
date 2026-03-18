@@ -1,0 +1,8 @@
+# All files — default owner
+* @dbsectrainer
+
+# Security-sensitive paths require explicit review
+projects/zero-trust/ @dbsectrainer
+shared/infrastructure/vault/ @dbsectrainer
+shared/infrastructure/keycloak/ @dbsectrainer
+shared/infrastructure/opa/ @dbsectrainer

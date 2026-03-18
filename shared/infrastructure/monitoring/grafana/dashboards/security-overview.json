@@ -1,0 +1,210 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "SecurityMetrics",
+            "SecurityEvents",
+            { "stat": "Sum", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Security Events",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/ApplicationELB",
+            "HTTPCode_ELB_5XX_Count",
+            "LoadBalancer",
+            "${cluster_name}",
+            { "stat": "Sum", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "HTTP 5XX Errors",
+        "period": 300
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 6,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE '${log_group_name}' | fields @timestamp, @message\n| filter @message like /SecurityEvent/\n| sort @timestamp desc\n| limit 20",
+        "region": "${region}",
+        "title": "Recent Security Events",
+        "view": "table"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EKS",
+            "cluster_failed_node_count",
+            "ClusterName",
+            "${cluster_name}",
+            { "stat": "Maximum", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Failed Nodes",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EKS",
+            "pod_cpu_utilization",
+            "ClusterName",
+            "${cluster_name}",
+            { "stat": "Average", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Pod CPU Utilization",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/EKS",
+            "pod_memory_utilization",
+            "ClusterName",
+            "${cluster_name}",
+            { "stat": "Average", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Pod Memory Utilization",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 18,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/NetworkELB",
+            "ActiveFlowCount",
+            "LoadBalancer",
+            "${cluster_name}",
+            { "stat": "Sum", "period": 60 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Active Network Flows",
+        "period": 60
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 18,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/NetworkELB",
+            "ProcessedBytes",
+            "LoadBalancer",
+            "${cluster_name}",
+            { "stat": "Sum", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "${region}",
+        "title": "Network Traffic",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 24,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/WAF",
+            "BlockedRequests",
+            "WebACL",
+            "${cluster_name}",
+            "Region",
+            "${region}",
+            { "stat": "Sum", "period": 300 }
+          ],
+          [
+            ".",
+            "AllowedRequests",
+            ".",
+            ".",
+            ".",
+            ".",
+            { "stat": "Sum", "period": 300 }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "region": "${region}",
+        "title": "WAF Requests",
+        "period": 300
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: project3-production
+  namespace: production
+  labels:
+    app: project3
+    env: production
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: project3
+    env: production
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: project3-production
+  namespace: production
+  labels:
+    app: project3
+    env: production
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_cache_bypass $http_upgrade;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - project3.example.com
+        - www.project3.example.com
+      secretName: project3-production-tls
+  rules:
+    - host: project3.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: project3-production
+                port:
+                  number: 80
+    - host: www.project3.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: project3-production
+                port:
+                  number: 80

@@ -1,0 +1,322 @@
+# Threat Intelligence Configuration for Zero Trust Security
+apiVersion: security.intel/v1
+kind: ThreatIntel
+metadata:
+  name: zero-trust-threat-intel
+  description: "Threat intelligence integration for zero trust security"
+
+sources:
+  # Identity Threat Feeds
+  - name: "identity-threats"
+    type: "identity"
+    config:
+      apiKey: "${IDENTITY_INTEL_KEY}"
+      collections:
+        - "credential-compromise"
+        - "identity-theft"
+        - "privilege-abuse"
+      updateInterval: "15m"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+  # Authentication Threats
+  - name: "auth-threats"
+    type: "authentication"
+    config:
+      apiKey: "${AUTH_INTEL_KEY}"
+      collections:
+        - "mfa-bypass"
+        - "session-hijacking"
+        - "token-theft"
+      updateInterval: "10m"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "assume-breach"
+
+  # Access Control Threats
+  - name: "access-threats"
+    type: "access"
+    config:
+      apiKey: "${ACCESS_INTEL_KEY}"
+      collections:
+        - "privilege-escalation"
+        - "policy-bypass"
+        - "authorization-abuse"
+      updateInterval: "5m"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "never-trust"
+
+integrations:
+  # Identity Provider Integration
+  - name: "keycloak-security"
+    type: "identity"
+    config:
+      url: "${KEYCLOAK_URL}"
+      realm: "${KEYCLOAK_REALM}"
+      actions:
+        - type: "block_user"
+          threshold: "high"
+        - type: "enforce_mfa"
+          threshold: "medium"
+        - type: "revoke_sessions"
+          threshold: "critical"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+  # Vault Integration
+  - name: "vault-security"
+    type: "secrets"
+    config:
+      url: "${VAULT_URL}"
+      token: "${VAULT_TOKEN}"
+      actions:
+        - type: "revoke_token"
+          scope: "affected"
+        - type: "rotate_keys"
+          scope: "compromised"
+        - type: "seal_vault"
+          scope: "emergency"
+      zeroTrustPrinciples:
+        - "encrypt-all-data"
+        - "use-least-privilege"
+
+  # Policy Engine Integration
+  - name: "opa-security"
+    type: "policy"
+    config:
+      url: "${OPA_URL}"
+      token: "${OPA_TOKEN}"
+      actions:
+        - type: "update_policy"
+          scope: "security"
+        - type: "enforce_restrictions"
+          scope: "affected"
+        - type: "block_access"
+          scope: "suspicious"
+      zeroTrustPrinciples:
+        - "never-trust"
+        - "verify-explicitly"
+
+enrichment:
+  # Threat Enrichment
+  processors:
+    - name: "identity-enrichment"
+      type: "identity"
+      providers:
+        - name: "identity-intel"
+          config:
+            apiKey: "${IDENTITY_INTEL_KEY}"
+            scope:
+              - "identity-verification"
+              - "authentication-patterns"
+              - "access-history"
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "never-trust"
+
+    - name: "access-enrichment"
+      type: "access"
+      providers:
+        - name: "access-intel"
+          config:
+            apiKey: "${ACCESS_INTEL_KEY}"
+            scope:
+              - "permission-patterns"
+              - "resource-access"
+              - "policy-violations"
+            zeroTrustPrinciples:
+              - "use-least-privilege"
+              - "assume-breach"
+
+correlation:
+  # Threat Correlation Rules
+  rules:
+    - name: "identity-abuse-pattern"
+      description: "Detect identity abuse patterns"
+      conditions:
+        - type: "match"
+          field: "authentication.type"
+          source: "keycloak"
+          window: "5m"
+          threshold: 10
+        - type: "match"
+          field: "authentication.result"
+          value: "failure"
+          window: "5m"
+          threshold: 5
+      actions:
+        - "enforce_additional_factors"
+        - "alert_security_team"
+        - "block_suspicious_ip"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "privilege-escalation-pattern"
+      description: "Detect privilege escalation attempts"
+      conditions:
+        - type: "match"
+          field: "access.type"
+          source: "vault"
+          window: "15m"
+          threshold: 3
+        - type: "match"
+          field: "access.level"
+          value: "elevated"
+          window: "15m"
+          threshold: 1
+      actions:
+        - "revoke_access"
+        - "trigger_investigation"
+        - "collect_forensics"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "assume-breach"
+
+automation:
+  # Automated Response Actions
+  playbooks:
+    - name: "identity-threat-response"
+      triggers:
+        - source: "identity-threats"
+          severity: "high"
+      actions:
+        - name: "enforce-mfa"
+          type: "identity"
+          config:
+            action: "require_additional_factor"
+            scope: "affected_users"
+            notify: true
+            zeroTrustPrinciples:
+              - "verify-explicitly"
+              - "never-trust"
+
+    - name: "access-threat-response"
+      triggers:
+        - source: "access-threats"
+          severity: "critical"
+      actions:
+        - name: "restrict-access"
+          type: "policy"
+          config:
+            action: "enforce_restrictions"
+            scope: "affected_resources"
+            approval: true
+            zeroTrustPrinciples:
+              - "use-least-privilege"
+              - "assume-breach"
+
+metrics:
+  # Threat Intelligence Metrics
+  collection:
+    - name: "identity_threats"
+      type: "counter"
+      description: "Count of identity-related threats"
+      labels:
+        - "type"
+        - "severity"
+        - "source"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "access_violations"
+      type: "counter"
+      description: "Count of access policy violations"
+      labels:
+        - "policy"
+        - "resource"
+        - "user"
+      zeroTrustPrinciples:
+        - "use-least-privilege"
+        - "assume-breach"
+
+alerts:
+  # Alert Configuration
+  rules:
+    - name: "critical-identity-threat"
+      expr: |
+        sum(rate(identity_threats{severity="critical"}[5m])) > 0
+      for: "5m"
+      labels:
+        severity: critical
+      annotations:
+        summary: "Critical identity threat detected"
+        zeroTrustPrinciples:
+          - "verify-explicitly"
+          - "never-trust"
+
+    - name: "access-policy-violation"
+      expr: |
+        sum(rate(access_violations{severity="high"}[5m])) > 10
+      for: "5m"
+      labels:
+        severity: high
+      annotations:
+        summary: "High rate of access policy violations"
+        zeroTrustPrinciples:
+          - "use-least-privilege"
+          - "assume-breach"
+
+reporting:
+  # Threat Reports
+  schedules:
+    - name: "daily-identity-report"
+      schedule: "0 7 * * *"
+      format: "pdf"
+      sections:
+        - "Identity Threats"
+        - "Authentication Events"
+        - "Access Violations"
+        - "Response Actions"
+      distribution:
+        - "security-team@example.com"
+        - "identity-team@example.com"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
+
+    - name: "weekly-zero-trust-report"
+      schedule: "0 7 * * 1"
+      format: "pdf"
+      sections:
+        - "Zero Trust Posture"
+        - "Threat Landscape"
+        - "Control Effectiveness"
+        - "Recommendations"
+      distribution:
+        - "security-leadership@example.com"
+        - "architecture-team@example.com"
+      zeroTrustPrinciples:
+        - "assume-breach"
+        - "use-least-privilege"
+
+evidence:
+  # Evidence Collection
+  collection:
+    - name: "threat-evidence"
+      type: "identity"
+      sources:
+        - "authentication-logs"
+        - "access-logs"
+        - "policy-decisions"
+      retention: "1y"
+      encryption: true
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "encrypt-all-data"
+
+  # Evidence Processing
+  processing:
+    - name: "evidence-validation"
+      type: "automated"
+      checks:
+        - "integrity"
+        - "authenticity"
+        - "completeness"
+      zeroTrustPrinciples:
+        - "verify-explicitly"
+        - "never-trust"
