@@ -14,7 +14,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.22.0.0/16
 
 volumes:
   vault-data:
@@ -91,11 +91,11 @@ services:
       - ./shared/infrastructure/keycloak/realm.json:/opt/keycloak/data/import/realm.json
     command: start-dev --import-realm
     healthcheck:
-      # Keycloak 23+ exposes /health/ready on management port 9000
+      # start-dev exposes /health/ready on the main HTTP port (8080); port 9000 is production-only
       test:
         [
           "CMD-SHELL",
-          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && timeout 3 cat <&3 | grep -q UP",
+          "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && timeout 3 cat <&3 | grep -q UP",
         ]
       interval: 15s
       timeout: 10s
@@ -191,6 +191,7 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./shared/infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./shared/infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - prometheus
     healthcheck:
@@ -285,7 +286,13 @@ services:
       PORT: "8088"
       COMPLIANCE_DIR: /app/compliance
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8088/health"]
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8088/health')",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5

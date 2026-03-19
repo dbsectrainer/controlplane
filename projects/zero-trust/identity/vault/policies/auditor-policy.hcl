@@ -2,240 +2,197 @@
 # This policy grants access to audit logs, monitoring, and compliance verification
 
 # Read health status
-path "sys/health"
-{
+path "sys/health" {
   capabilities = ["read"]
 }
 
 # Read audit logs
-path "sys/audit"
-{
+path "sys/audit" {
   capabilities = ["read"]
 }
 
-path "sys/audit/*"
-{
+path "sys/audit/*" {
   capabilities = ["read"]
 }
 
 # Read audit hash values
-path "sys/audit-hash/*"
-{
+path "sys/audit-hash/*" {
   capabilities = ["read"]
 }
 
 # List and read all policies
-path "sys/policies/acl"
-{
+path "sys/policies/acl" {
   capabilities = ["read", "list"]
 }
 
-path "sys/policies/acl/*"
-{
+path "sys/policies/acl/*" {
   capabilities = ["read"]
 }
 
 # List and read auth methods
-path "sys/auth"
-{
+path "sys/auth" {
   capabilities = ["read", "list"]
 }
 
-path "sys/auth/*"
-{
+path "sys/auth/*" {
   capabilities = ["read"]
 }
 
 # List and read secrets engines configuration
-path "sys/mounts"
-{
+path "sys/mounts" {
   capabilities = ["read", "list"]
 }
 
-path "sys/mounts/*"
-{
+path "sys/mounts/*" {
   capabilities = ["read"]
 }
 
 # Read seal status
-path "sys/seal-status"
-{
+path "sys/seal-status" {
   capabilities = ["read"]
 }
 
 # Read license status
-path "sys/license/status"
-{
+path "sys/license/status" {
   capabilities = ["read"]
 }
 
 # Read metrics
-path "sys/metrics"
-{
+path "sys/metrics" {
   capabilities = ["read"]
 }
 
 # Read internal counters
-path "sys/internal/counters/*"
-{
+path "sys/internal/counters/*" {
   capabilities = ["read"]
 }
 
 # List and read leases
-path "sys/leases/lookup/*"
-{
+path "sys/leases/lookup/*" {
   capabilities = ["read", "list"]
 }
 
 # Read capabilities
-path "sys/capabilities-self"
-{
+path "sys/capabilities-self" {
   capabilities = ["read"]
 }
 
 # Read identity information
-path "identity/entity/id/*"
-{
+path "identity/entity/id/*" {
   capabilities = ["read"]
 }
 
-path "identity/entity/name/*"
-{
+path "identity/entity/name/*" {
   capabilities = ["read"]
 }
 
-path "identity/group/id/*"
-{
+path "identity/group/id/*" {
   capabilities = ["read"]
 }
 
-path "identity/group/name/*"
-{
+path "identity/group/name/*" {
   capabilities = ["read"]
 }
 
 # Read authentication configuration
-path "auth/*/config"
-{
+path "auth/*/config" {
   capabilities = ["read"]
 }
 
 # Read token configuration
-path "auth/token/accessors"
-{
+path "auth/token/accessors" {
   capabilities = ["read", "list"]
 }
 
-path "auth/token/roles/*"
-{
+path "auth/token/roles/*" {
   capabilities = ["read"]
 }
 
 # Read PKI configuration
-path "pki/config/*"
-{
+path "pki/config/*" {
   capabilities = ["read"]
 }
 
-path "pki/certs"
-{
+path "pki/certs" {
   capabilities = ["read", "list"]
 }
 
 # Read AWS configuration
-path "aws/config/*"
-{
+path "aws/config/*" {
   capabilities = ["read"]
 }
 
-path "aws/roles/*"
-{
+path "aws/roles/*" {
   capabilities = ["read"]
 }
 
 # Read Azure configuration
-path "azure/config"
-{
+path "azure/config" {
   capabilities = ["read"]
 }
 
-path "azure/roles/*"
-{
+path "azure/roles/*" {
   capabilities = ["read"]
 }
 
 # Read GCP configuration
-path "gcp/config"
-{
+path "gcp/config" {
   capabilities = ["read"]
 }
 
-path "gcp/roles/*"
-{
+path "gcp/roles/*" {
   capabilities = ["read"]
 }
 
 # Read Kubernetes configuration
-path "kubernetes/config"
-{
+path "kubernetes/config" {
   capabilities = ["read"]
 }
 
-path "kubernetes/roles/*"
-{
+path "kubernetes/roles/*" {
   capabilities = ["read"]
 }
 
 # Read database configuration
-path "database/config/*"
-{
+path "database/config/*" {
   capabilities = ["read"]
 }
 
-path "database/roles/*"
-{
+path "database/roles/*" {
   capabilities = ["read"]
 }
 
 # Read transit configuration
-path "transit/keys/*"
-{
+path "transit/keys/*" {
   capabilities = ["read"]
 }
 
 # Read encryption key configuration
-path "encryption/keys/*"
-{
+path "encryption/keys/*" {
   capabilities = ["read"]
 }
 
 # Read secret metadata (but not actual secrets)
-path "secret/metadata/*"
-{
+path "secret/metadata/*" {
   capabilities = ["read", "list"]
 }
 
 # Generate audit reports
-path "sys/audit-report/*"
-{
+path "sys/audit-report/*" {
   capabilities = ["read"]
 }
 
 # Read replication status
-path "sys/replication/status"
-{
+path "sys/replication/status" {
   capabilities = ["read"]
 }
 
 # Read performance metrics
-path "sys/storage/raft/snapshot-auto/config"
-{
+path "sys/storage/raft/snapshot-auto/config" {
   capabilities = ["read"]
 }
 
 # Deny all write operations
-path "+/+/+/+"
-{
+path "+/+/+/+" {
   capabilities = ["deny"]
-  permissions = ["create", "update", "delete", "sudo"]
 }

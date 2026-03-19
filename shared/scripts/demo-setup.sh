@@ -32,6 +32,11 @@ echo ""
 # Make all scripts executable
 chmod +x "$ROOT/shared/scripts/"*.sh
 
+# Generate SSL certs for keycloak-proxy (idempotent — skips if already present)
+echo "${BOLD}Generating SSL certificates for Keycloak HTTPS proxy...${RESET}"
+bash "$ROOT/shared/scripts/generate-certs.sh"
+echo ""
+
 # Pull images (parallel, verbose)
 echo "${BOLD}Pulling Docker images (this may take a few minutes the first time)...${RESET}"
 docker-compose pull --quiet 2>/dev/null || true
