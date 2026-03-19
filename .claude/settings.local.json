@@ -4,7 +4,9 @@
       "Bash(act push:*)",
       "Bash(docker run:*)",
       "Bash(detect-secrets scan:*)",
-      "Bash(detect-secrets --version)"
+      "Bash(detect-secrets --version)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose ps:*)"
     ]
   }
 }
