@@ -61,6 +61,20 @@ variable "endpoint_subnet_id" {
   default     = ""
 }
 
+variable "waf_ssl_certificate_data" {
+  description = "Base64-encoded PFX certificate data for the Application Gateway WAF listener. Override for real deployments."
+  type        = string
+  sensitive   = true
+  default     = "ZGVtby1jZXJ0aWZpY2F0ZS1wbGFjZWhvbGRlcg=="
+}
+
+variable "waf_ssl_certificate_password" {
+  description = "Password for the Application Gateway WAF PFX certificate. Override for real deployments."
+  type        = string
+  sensitive   = true
+  default     = "password"
+}
+
 data "azurerm_client_config" "current" {}
 data "azurerm_subscription" "current" {}
 
