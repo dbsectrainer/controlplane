@@ -19,7 +19,7 @@ scrape_configs:
     metrics_path: /v1/sys/metrics
     params:
       format: ["prometheus"]
-    bearer_token: "root"
+    bearer_token: "root" # pragma: allowlist secret
     static_configs:
       - targets: ["vault:8200"]
 

@@ -22,7 +22,7 @@ resource "azurerm_security_center_contact" "main" {
   phone = var.security_contact_phone
 
   alert_notifications = true
-  alerts_to_admins   = true
+  alerts_to_admins    = true
 }
 
 # Enable Security Center Auto Provisioning
@@ -51,7 +51,7 @@ resource "azurerm_key_vault" "main" {
   name                = "security-pipeline-${var.environment}"
   location            = azurerm_resource_group.security.location
   resource_group_name = azurerm_resource_group.security.name
-  tenant_id          = data.azurerm_client_config.current.tenant_id
+  tenant_id           = data.azurerm_client_config.current.tenant_id
 
   sku_name = "standard"
 
@@ -97,13 +97,48 @@ resource "azurerm_application_gateway" "waf" {
     public_ip_address_id = azurerm_public_ip.waf.id
   }
 
+  backend_address_pool {
+    name = "backend-pool"
+  }
+
+  backend_http_settings {
+    name                  = "backend-settings"
+    cookie_based_affinity = "Disabled"
+    port                  = 443
+    protocol              = "Https"
+    request_timeout       = 60
+  }
+
+  ssl_certificate {
+    name     = "stub-cert"
+    data     = var.waf_ssl_certificate_data
+    password = var.waf_ssl_certificate_password
+  }
+
+  http_listener {
+    name                           = "https-listener"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "https"
+    protocol                       = "Https"
+    ssl_certificate_name           = "stub-cert"
+  }
+
+  request_routing_rule {
+    name                       = "routing-rule"
+    rule_type                  = "Basic"
+    http_listener_name         = "https-listener"
+    backend_address_pool_name  = "backend-pool"
+    backend_http_settings_name = "backend-settings"
+    priority                   = 100
+  }
+
   waf_configuration {
     enabled                  = true
-    firewall_mode           = "Prevention"
-    rule_set_type           = "OWASP"
-    rule_set_version        = "3.2"
-    file_upload_limit_mb    = 100
-    request_body_check      = true
+    firewall_mode            = "Prevention"
+    rule_set_type            = "OWASP"
+    rule_set_version         = "3.2"
+    file_upload_limit_mb     = 100
+    request_body_check       = true
     max_request_body_size_kb = 128
   }
 
@@ -125,9 +160,9 @@ resource "azurerm_network_security_group" "main" {
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
-    source_port_range         = "*"
-    destination_port_range    = "443"
-    source_address_prefix     = "*"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
@@ -142,7 +177,7 @@ resource "azurerm_log_analytics_workspace" "main" {
   name                = "security-pipeline-logs"
   location            = azurerm_resource_group.security.location
   resource_group_name = azurerm_resource_group.security.name
-  sku                = "PerGB2018"
+  sku                 = "PerGB2018"
   retention_in_days   = 30
 
   tags = {
@@ -154,7 +189,7 @@ resource "azurerm_log_analytics_workspace" "main" {
 # Azure Monitor Diagnostic Settings
 resource "azurerm_monitor_diagnostic_setting" "keyvault" {
   name                       = "security-pipeline-keyvault-diag"
-  target_resource_id        = azurerm_key_vault.main.id
+  target_resource_id         = azurerm_key_vault.main.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
 
   log {
@@ -179,12 +214,12 @@ resource "azurerm_monitor_diagnostic_setting" "keyvault" {
 }
 
 # Azure Policy Assignments
-resource "azurerm_policy_assignment" "security_benchmark" {
+resource "azurerm_subscription_policy_assignment" "security_benchmark" {
   name                 = "security-benchmark"
-  scope                = data.azurerm_subscription.current.id
+  subscription_id      = data.azurerm_subscription.current.id
   policy_definition_id = "/providers/Microsoft.Authorization/policySetDefinitions/1f3afdf9-d0c9-4c3d-847f-89da613e70a8"
-  description         = "Azure Security Benchmark policy initiative assignment"
-  display_name        = "Azure Security Benchmark"
+  description          = "Azure Security Benchmark policy initiative assignment"
+  display_name         = "Azure Security Benchmark"
 
   parameters = jsonencode({
     "effect" = {
@@ -215,8 +250,8 @@ resource "azurerm_private_endpoint" "keyvault" {
   private_service_connection {
     name                           = "keyvault-connection"
     private_connection_resource_id = azurerm_key_vault.main.id
-    is_manual_connection          = false
-    subresource_names            = ["vault"]
+    is_manual_connection           = false
+    subresource_names              = ["vault"]
   }
 
   tags = {
