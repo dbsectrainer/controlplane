@@ -6,7 +6,8 @@
       "Bash(detect-secrets scan:*)",
       "Bash(detect-secrets --version)",
       "Bash(docker exec:*)",
-      "Bash(docker-compose ps:*)"
+      "Bash(docker-compose ps:*)",
+      "Bash(gh pr *)"
     ]
   }
 }
