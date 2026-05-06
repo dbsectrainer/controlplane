@@ -101,21 +101,21 @@ jobs:
           detect-secrets scan shared/ \
             --exclude-files '.*\.hcl' \
             --exclude-files 'shared/scripts/.*' \
-            --exclude-files 'shared/infrastructure/monitoring/.*' \
-            --exclude-files 'shared/infrastructure/keycloak/.*' \
-            > /tmp/secrets-baseline.json
-          cat /tmp/secrets-baseline.json | python3 -c "
+            > /tmp/secrets-scan.json
+          python3 -c "
           import sys, json
-          data = json.load(sys.stdin)
-          results = data.get('results', {})
-          if results:
-              print('FAIL: Potential secrets detected:')
-              for f, findings in results.items():
-                  for finding in findings:
-                      print(f'  {f}:{finding[\"line_number\"]} — {finding[\"type\"]}')
+          baseline = json.load(open('.secrets.baseline'))
+          scan = json.load(open('/tmp/secrets-scan.json'))
+          known = {(f, r['hashed_secret']) for f, rs in baseline.get('results', {}).items() for r in rs}
+          new_findings = {f: [r for r in rs if (f, r['hashed_secret']) not in known]
+                         for f, rs in scan.get('results', {}).items()}
+          new_findings = {f: rs for f, rs in new_findings.items() if rs}
+          if new_findings:
+              print('FAIL: New secrets detected:')
+              for f, rs in new_findings.items():
+                  for r in rs: print(f'  {f}:{r[\"line_number\"]} — {r[\"type\"]}')
               sys.exit(1)
-          else:
-              print('PASS: No secrets detected')
+          print('PASS: No new secrets found')
           "
 
   ###############################################################################
