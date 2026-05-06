@@ -1,4 +1,4 @@
-import express from "express";
+import express from 'express';
 
 const router = express.Router();
 
@@ -48,15 +48,15 @@ const tasks = [];
  *         description: Invalid request body
  */
 
-router.get("/", (req, res) => {
+router.get('/', (req, res) => {
   res.json(tasks);
 });
 
-router.post("/", (req, res) => {
+router.post('/', (req, res) => {
   const { title } = req.body;
 
   if (!title) {
-    return res.status(400).json({ error: "Title is required" });
+    return res.status(400).json({ error: 'Title is required' });
   }
 
   const task = {
@@ -99,13 +99,13 @@ router.post("/", (req, res) => {
  *         description: Task not found
  */
 
-router.put("/:id", (req, res) => {
+router.put('/:id', (req, res) => {
   const { id } = req.params;
   const { title, completed } = req.body;
 
   const task = tasks.find((t) => t.id === id);
   if (!task) {
-    return res.status(404).json({ error: "Task not found" });
+    return res.status(404).json({ error: 'Task not found' });
   }
 
   if (title) task.title = title;

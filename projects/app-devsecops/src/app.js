@@ -1,14 +1,14 @@
-import { createServer } from "http";
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import dotenv from "dotenv";
-import swaggerUi from "swagger-ui-express";
-import { specs } from "./swagger.js";
-import { metricsMiddleware, metricsHandler } from "./middleware/metrics.js";
-import logger, { requestLogger, errorLogger } from "./middleware/logger.js";
-import tasksRouter from "./routes/tasks.js";
-import vaultService from "./services/vault.js";
+import { createServer } from 'http';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './swagger.js';
+import { metricsMiddleware, metricsHandler } from './middleware/metrics.js';
+import logger, { requestLogger, errorLogger } from './middleware/logger.js';
+import tasksRouter from './routes/tasks.js';
+import vaultService from './services/vault.js';
 
 // Load environment variables
 dotenv.config();
@@ -18,7 +18,7 @@ const app = express();
 // Initialize Vault (optional - app runs without it)
 vaultService.initialize().catch((error) => {
   logger.warn(
-    "Vault unavailable, continuing without Vault integration:",
+    'Vault unavailable, continuing without Vault integration:',
     error.message,
   );
 });
@@ -31,13 +31,13 @@ app.use(express.json()); // Parse JSON bodies
 app.use(metricsMiddleware); // Prometheus metrics
 
 // Routes
-app.use("/api/tasks", tasksRouter);
+app.use('/api/tasks', tasksRouter);
 
 // API Documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Metrics endpoint
-app.get("/metrics", metricsHandler);
+app.get('/metrics', metricsHandler);
 
 /**
  * @openapi
@@ -60,20 +60,20 @@ app.get("/metrics", metricsHandler);
  *                 endpoints:
  *                   type: object
  */
-app.get("/", (req, res) => {
+app.get('/', (req, res) => {
   res.json({
-    message: "Welcome to the DevOps Pipeline Demo",
-    version: "1.0.0",
+    message: 'Welcome to the DevOps Pipeline Demo',
+    version: '1.0.0',
     endpoints: {
-      health: "/health",
+      health: '/health',
     },
   });
 });
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get('/health', (req, res) => {
   res.status(200).json({
-    status: "healthy",
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
@@ -81,7 +81,7 @@ app.get("/health", (req, res) => {
 
 // 404 handler - after all routes, before error handler
 app.use((req, res) => {
-  res.status(404).json({ error: "Not Found" });
+  res.status(404).json({ error: 'Not Found' });
 });
 
 // Error logging middleware
@@ -90,10 +90,10 @@ app.use(errorLogger);
 // Error handling middleware
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  logger.error("Unhandled error:", err);
+  logger.error('Unhandled error:', err);
   res.status(500).json({
-    error: "Internal Server Error",
-    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 
@@ -110,7 +110,7 @@ export function startServer() {
 }
 
 // Only auto-start when not in test mode
-if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV !== 'test') {
   startServer();
 }
 

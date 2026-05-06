@@ -1,14 +1,14 @@
-import winston from "winston";
-import expressWinston from "express-winston";
+import winston from 'winston';
+import expressWinston from 'express-winston';
 
 // Create Winston logger
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || "info",
+  level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json(),
   ),
-  defaultMeta: { service: "project3" },
+  defaultMeta: { service: 'project3' },
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
@@ -17,13 +17,13 @@ const logger = winston.createLogger({
       ),
     }),
     new winston.transports.File({
-      filename: "logs/error.log",
-      level: "error",
+      filename: 'logs/error.log',
+      level: 'error',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
     new winston.transports.File({
-      filename: "logs/combined.log",
+      filename: 'logs/combined.log',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
@@ -34,18 +34,18 @@ const logger = winston.createLogger({
 export const requestLogger = expressWinston.logger({
   winstonInstance: logger,
   meta: true,
-  msg: "HTTP {{req.method}} {{req.url}}",
+  msg: 'HTTP {{req.method}} {{req.url}}',
   expressFormat: true,
   colorize: true,
   // eslint-disable-next-line no-unused-vars
-  ignoreRoute: (req, res) => req.url === "/health" || req.url === "/metrics",
+  ignoreRoute: (req, res) => req.url === '/health' || req.url === '/metrics',
 });
 
 // Error logging middleware
 export const errorLogger = expressWinston.errorLogger({
   winstonInstance: logger,
   meta: true,
-  msg: "HTTP {{err.status}} {{err.message}}",
+  msg: 'HTTP {{err.status}} {{err.message}}',
   colorize: true,
 });
 

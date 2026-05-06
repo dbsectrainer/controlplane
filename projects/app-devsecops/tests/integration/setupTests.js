@@ -1,7 +1,7 @@
 // Setup for each test file
 /* eslint-disable no-console */
-import { jest } from "@jest/globals";
-import { server, startServer } from "../../src/app.js";
+import { jest } from '@jest/globals';
+import { server, startServer } from '../../src/app.js';
 
 beforeAll(async () => {
   await startServer();
@@ -12,7 +12,7 @@ afterAll(async () => {
   // Close the server after tests
   await new Promise((resolve) => {
     server.close(() => {
-      console.info("Test server closed");
+      console.info('Test server closed');
       resolve();
     });
   });
