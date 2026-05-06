@@ -109,11 +109,18 @@ resource "azurerm_application_gateway" "waf" {
     request_timeout       = 60
   }
 
+  ssl_certificate {
+    name     = "stub-cert"
+    data     = base64encode(file("${path.module}/stub-cert.pfx"))
+    password = "password"
+  }
+
   http_listener {
     name                           = "https-listener"
     frontend_ip_configuration_name = "frontend-ip-configuration"
     frontend_port_name             = "https"
     protocol                       = "Https"
+    ssl_certificate_name           = "stub-cert"
   }
 
   request_routing_rule {

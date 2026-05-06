@@ -1,20 +1,20 @@
-import request from 'supertest';
-import express from 'express';
+import request from "supertest";
+import express from "express";
 
 // eslint-disable-next-line import/no-named-as-default
-import app from '../../src/app.js';
+import app from "../../src/app.js";
 
-describe('Express App', () => {
-  describe('GET /health', () => {
-    it('should return 200 and health status', async () => {
+describe("Express App", () => {
+  describe("GET /health", () => {
+    it("should return 200 and health status", async () => {
       const response = await request(app)
-        .get('/health')
-        .expect('Content-Type', /json/)
+        .get("/health")
+        .expect("Content-Type", /json/)
         .expect(200);
 
       expect(response.body).toEqual(
         expect.objectContaining({
-          status: 'healthy',
+          status: "healthy",
           timestamp: expect.any(String),
           uptime: expect.any(Number),
         }),
@@ -22,39 +22,39 @@ describe('Express App', () => {
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle 404 errors', async () => {
+  describe("Error Handling", () => {
+    it("should handle 404 errors", async () => {
       const response = await request(app)
-        .get('/non-existent-route')
-        .expect('Content-Type', /json/)
+        .get("/non-existent-route")
+        .expect("Content-Type", /json/)
         .expect(404);
 
       expect(response.body).toEqual(
         expect.objectContaining({
-          error: 'Not Found',
+          error: "Not Found",
         }),
       );
     });
 
-    it('should handle server errors', async () => {
+    it("should handle server errors", async () => {
       // Use an isolated app to test the error handling middleware pattern
       const testApp = express();
-      testApp.get('/error-test', () => {
-        throw new Error('Test error');
+      testApp.get("/error-test", () => {
+        throw new Error("Test error");
       });
       // eslint-disable-next-line no-unused-vars
       testApp.use((err, req, res, next) => {
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: "Internal Server Error" });
       });
 
       const response = await request(testApp)
-        .get('/error-test')
-        .expect('Content-Type', /json/)
+        .get("/error-test")
+        .expect("Content-Type", /json/)
         .expect(500);
 
       expect(response.body).toEqual(
         expect.objectContaining({
-          error: 'Internal Server Error',
+          error: "Internal Server Error",
         }),
       );
     });

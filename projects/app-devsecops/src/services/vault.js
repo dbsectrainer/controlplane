@@ -1,11 +1,11 @@
-import vault from 'node-vault';
-import logger from '../middleware/logger.js';
+import vault from "node-vault";
+import logger from "../middleware/logger.js";
 
 class VaultService {
   constructor() {
     this.client = vault({
-      apiVersion: 'v1',
-      endpoint: process.env.VAULT_ADDR || 'http://vault:8200',
+      apiVersion: "v1",
+      endpoint: process.env.VAULT_ADDR || "http://vault:8200",
       token: process.env.VAULT_TOKEN,
     });
 
@@ -19,16 +19,16 @@ class VaultService {
       // Check Vault status
       const health = await this.client.health();
       if (!health.initialized) {
-        throw new Error('Vault is not initialized');
+        throw new Error("Vault is not initialized");
       }
 
       // Set up default configuration
       await this.setupSecretEngine();
 
       this.initialized = true;
-      logger.info('Vault service initialized successfully');
+      logger.info("Vault service initialized successfully");
     } catch (error) {
-      logger.error('Failed to initialize Vault service:', error);
+      logger.error("Failed to initialize Vault service:", error);
       throw error;
     }
   }
@@ -37,18 +37,18 @@ class VaultService {
     try {
       // Mount the KV secrets engine if not already mounted
       await this.client.mounts().then(async (mounts) => {
-        if (!mounts['secret/']) {
+        if (!mounts["secret/"]) {
           await this.client.mount({
-            mount_point: 'secret',
-            type: 'kv',
+            mount_point: "secret",
+            type: "kv",
             options: {
-              version: '2',
+              version: "2",
             },
           });
         }
       });
     } catch (error) {
-      logger.error('Failed to setup secret engine:', error);
+      logger.error("Failed to setup secret engine:", error);
       throw error;
     }
   }
