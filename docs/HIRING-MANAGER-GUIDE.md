@@ -8,9 +8,24 @@ This guide gets the platform running on your laptop in 5 minutes so you can expl
 
 ## Prerequisites
 
-- Docker Desktop (or Docker + docker-compose)
-- 8GB RAM available (all services combined)
-- Ports available: 3000, 3100, 8008, 8025, 8080, 8088, 8181, 8200, 9000, 9090, 9093
+### System Requirements
+
+- **RAM:** 8GB available (recommended 16GB for smooth operation)
+- **Disk:** 10GB free space
+- **CPU:** 2+ cores recommended
+- **Ports available:** 3000, 3100, 8008, 8025, 8080, 8088, 8181, 8200, 9000, 9090, 9093
+
+### Docker Installation
+
+- **macOS/Windows:** [Docker Desktop](https://www.docker.com/products/docker-desktop) (includes Docker + docker-compose)
+- **Linux:** `docker` + `docker-compose` (or `docker compose` v2.x)
+- **Minimum Docker version:** 20.10+
+- **Minimum docker-compose version:** 1.29+ (or Docker v2.x)
+
+### Network
+
+- Stable internet connection (for initial `docker pull` of images)
+- No corporate proxy blocking Docker registries (common in enterprise networks)
 
 ---
 
@@ -23,7 +38,13 @@ cd controlplane
 docker-compose up -d
 ```
 
-Wait ~2 minutes for all services to become healthy, then open:
+**Health Check:** Wait for all services to start. Verify with:
+
+```bash
+docker-compose ps
+```
+
+Services should show `healthy` status (may take 1–2 minutes). Then open:
 
 | Service                       | URL                             | Credentials   |
 | ----------------------------- | ------------------------------- | ------------- |
@@ -60,10 +81,42 @@ Wait ~2 minutes for all services to become healthy, then open:
 # Query the policy engine directly
 curl -s http://localhost:8181/v1/data/authorization/allow \
   -H 'Content-Type: application/json' \
-  -d '{"input":{"user":{"name":"admin-user","roles":["admin"],"groups":[],"team":"security","type":"human"},"resource":{"name":"admin-panel","type":"ui","environment":"production","team":"security","allowed_service_accounts":[]},"request":{"method":"GET","protocol":"https","source_ip":"10.0.0.1","authenticated":true,"mfa_verified":true,"headers":{"Content-Security-Policy":"default","X-Frame-Options":"DENY"}},"context":{"incident_id":null,"emergency_approved":false}}}'
+  -d '{
+    "input": {
+      "user": {
+        "name": "admin-user",
+        "roles": ["admin"],
+        "groups": [],
+        "team": "security",
+        "type": "human"
+      },
+      "resource": {
+        "name": "admin-panel",
+        "type": "ui",
+        "environment": "production",
+        "team": "security",
+        "allowed_service_accounts": []
+      },
+      "request": {
+        "method": "GET",
+        "protocol": "https",
+        "source_ip": "10.0.0.1",
+        "authenticated": true,
+        "mfa_verified": true,
+        "headers": {
+          "Content-Security-Policy": "default",
+          "X-Frame-Options": "DENY"
+        }
+      },
+      "context": {
+        "incident_id": null,
+        "emergency_approved": false
+      }
+    }
+  }'
 ```
 
-Expected: `{"result": true}`
+Expected response: `{"result": true}`
 
 ### 4. Compliance Dashboard (`http://localhost:8088/dashboard`)
 
@@ -93,6 +146,89 @@ Expected: `{"result": true}`
 | Threat Detection          | Prometheus alert rules in `shared/infrastructure/monitoring/security-monitoring.yaml` |
 | Supply Chain Security     | SBOM config in `shared/security-configs/supply-chain.yaml`                            |
 | MITRE ATT&CK Mapping      | `shared/security-configs/mitre-mappings.yaml`                                         |
+
+---
+
+## Troubleshooting
+
+### Services stuck in unhealthy state
+
+**Problem:** `docker-compose ps` shows `health: starting` after 3+ minutes
+
+**Solution:**
+
+```bash
+# Check service logs
+docker-compose logs <service-name>
+
+# Restart a specific service
+docker-compose restart <service-name>
+
+# Full restart
+docker-compose down -v && docker-compose up -d
+```
+
+### Port already in use
+
+**Problem:** `Error: bind: address already in use`
+
+**Solution:** Identify and stop the conflicting process:
+
+```bash
+# Find process using port (e.g., 8080)
+lsof -i :8080
+
+# Or kill by port (macOS/Linux)
+fuser -k 8080/tcp
+```
+
+Then retry `docker-compose up -d`.
+
+### Insufficient disk space
+
+**Problem:** `no space left on device` or `docker pull` fails
+
+**Solution:**
+
+```bash
+# Clean up Docker artifacts
+docker system prune -a
+
+# Check available space
+df -h
+# Ensure at least 10GB free (all services combined use ~5GB)
+```
+
+### Docker daemon not running
+
+**Problem:** `Cannot connect to Docker daemon`
+
+**Solution:**
+
+- **macOS:** Open Docker Desktop from Applications
+- **Linux:** `sudo systemctl start docker`
+
+### Scripts not executable
+
+**Problem:** `Permission denied` when running `demo-setup.sh`
+
+**Solution:**
+
+```bash
+chmod +x ./shared/scripts/demo-setup.sh
+chmod +x ./shared/scripts/demo-attack.sh
+```
+
+### OPA query fails with 404
+
+**Problem:** `curl` to OPA returns 404 or connection refused
+
+**Solution:** Verify OPA is healthy:
+
+```bash
+curl http://localhost:8181/health
+# Should return HTTP 200
+```
 
 ---
 
