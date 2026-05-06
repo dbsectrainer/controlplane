@@ -111,7 +111,7 @@ resource "azurerm_application_gateway" "waf" {
 
   ssl_certificate {
     name     = "stub-cert"
-    data     = base64encode(file("${path.module}/stub-cert.pfx"))
+    data     = filebase64("${path.module}/stub-cert.pfx")
     password = "password"
   }
 
