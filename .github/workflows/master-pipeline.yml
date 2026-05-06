@@ -16,7 +16,7 @@ env:
 ###############################################################################
 jobs:
   validate-vault-policies:
-    name: 'Validate Vault Policies'
+    name: "Validate Vault Policies"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -52,7 +52,7 @@ jobs:
           done
 
   validate-opa-policies:
-    name: 'Validate OPA Policies'
+    name: "Validate OPA Policies"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -76,7 +76,7 @@ jobs:
         run: opa fmt --fail shared/infrastructure/opa/policies.rego
 
   scan-shared-configs:
-    name: 'Scan Shared Configs'
+    name: "Scan Shared Configs"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -123,7 +123,7 @@ jobs:
   ###############################################################################
 
   pipeline-app-devsecops:
-    name: 'Pipeline: App DevSecOps'
+    name: "Pipeline: App DevSecOps"
     needs: [validate-vault-policies, validate-opa-policies, scan-shared-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -133,8 +133,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: projects/app-devsecops/package-lock.json
 
       - name: Install dependencies
@@ -158,11 +158,11 @@ jobs:
       - name: Container scan — Trivy
         uses: aquasecurity/trivy-action@0.36.0
         with:
-          scan-type: 'fs'
-          scan-ref: 'projects/app-devsecops'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '0'
-          format: 'table'
+          scan-type: "fs"
+          scan-ref: "projects/app-devsecops"
+          severity: "HIGH,CRITICAL"
+          exit-code: "0"
+          format: "table"
 
       - name: Upload scan results
         uses: actions/upload-artifact@v4
@@ -172,7 +172,7 @@ jobs:
           path: /tmp/eslint-results.json
 
   pipeline-zero-trust:
-    name: 'Pipeline: Zero Trust'
+    name: "Pipeline: Zero Trust"
     needs: [validate-vault-policies, validate-opa-policies, scan-shared-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -198,7 +198,7 @@ jobs:
           checkov -d projects/zero-trust/ --output cli || true
 
   pipeline-cloud-native:
-    name: 'Pipeline: Cloud Native'
+    name: "Pipeline: Cloud Native"
     needs: [validate-vault-policies, validate-opa-policies, scan-shared-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -208,7 +208,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.6.0'
+          terraform_version: "1.6.0"
           terraform_wrapper: false
 
       - name: Terraform validate — AWS
@@ -230,7 +230,7 @@ jobs:
 
       - name: tfsec
         env:
-          TFSEC_VERSION: 'v1.28.6'
+          TFSEC_VERSION: "v1.28.6"
         run: |
           curl -sL -o /tmp/tfsec \
             "https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64"
@@ -247,7 +247,7 @@ jobs:
           tfsec projects/cloud-native/terraform/ || true
 
   pipeline-compliance:
-    name: 'Pipeline: Compliance'
+    name: "Pipeline: Compliance"
     needs: [validate-vault-policies, validate-opa-policies, scan-shared-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -278,7 +278,7 @@ jobs:
           "
 
   pipeline-mobile:
-    name: 'Pipeline: Mobile Security'
+    name: "Pipeline: Mobile Security"
     needs: [validate-vault-policies, validate-opa-policies, scan-shared-configs]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -316,7 +316,7 @@ jobs:
   ###############################################################################
 
   integration-tests:
-    name: 'Integration Tests'
+    name: "Integration Tests"
     needs:
       - pipeline-app-devsecops
       - pipeline-zero-trust
@@ -372,7 +372,7 @@ jobs:
   ###############################################################################
 
   unified-report:
-    name: 'Unified Portfolio Report'
+    name: "Unified Portfolio Report"
     needs: [integration-tests]
     runs-on: ubuntu-latest
     if: always()
