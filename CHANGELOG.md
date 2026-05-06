@@ -6,12 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [1.1.0] — 2026-03-18
+## [1.1.0] — 2026-05-06
 
 ### Fixed
 
 #### CI/CD Pipeline (`.github/workflows/master-pipeline.yml`)
 
+- **Terraform version — 1.15** — bumped Terraform to v1.15.2 in CI and updated all module `required_version` constraints to `>= 1.15.1`
+- **Trivy action — v0.35.0** — updated container scan action from mutable `@master` to pinned `@0.35.0`
 - **docker compose v2** — replaced `docker-compose` (v1 standalone) with `docker compose` (v2 plugin) in integration-tests and teardown; not shipped by default on Ubuntu 22.04 runners
 - **Terraform validate — multi-cloud** — expanded `pipeline-cloud-native` to validate all three provider directories (AWS, Azure, GCP); previously only AWS was validated
 - **`terraform_wrapper: false`** — disabled the Node.js wrapper in `hashicorp/setup-terraform@v3` to prevent `/usr/bin/env: 'node': No such file or directory` failures
@@ -21,7 +23,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **detect-secrets regex** — changed `--exclude-files '*.hcl'` (invalid glob) to `--exclude-files '.*\.hcl'` (valid Python regex)
 - **detect-secrets exclusions** — added exclusions for `shared/scripts/.*`, `shared/infrastructure/monitoring/.*`, and `shared/infrastructure/keycloak/.*` to suppress intentional placeholder credentials in demo configs
 - **`actions/setup-python` removed** — all jobs use the Python 3.10 pre-installed in `catthehacker/ubuntu:act-22.04`; setup-python post-step fails in act due to missing cache API
-- **`trivy-action` pinned** — changed mutable `@master` ref to `@0.19.0`
 - **npm cache path** — corrected `cache-dependency-path` from `package.json` to `package-lock.json`
 - **Job timeouts** — added explicit `timeout-minutes` to every job
 - **Integration-test health polling** — replaced `sleep 10` with `timeout 60 bash -c 'until curl -sf ...; do sleep 2; done'` for Vault and OPA readiness
@@ -34,6 +35,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 #### Terraform — Azure (`projects/cloud-native/terraform/azure/`)
 
 - **Created `main.tf`** — provider config, variables, data sources, and `azurerm_public_ip.waf` stub required by `security.tf`
+- **Application Gateway WAF certificate variables** — introduced `waf_ssl_certificate_data` and `waf_ssl_certificate_password` (sensitive variables) to allow injecting base64 PFX and password for production deployments; replaced file-based stub and hardcoded values
 - **azurerm v3 breaking change** — replaced removed `azurerm_policy_assignment` with `azurerm_subscription_policy_assignment`; updated `scope` → `subscription_id`
 - **Application Gateway required blocks** — added missing `backend_address_pool`, `backend_http_settings`, `http_listener`, and `request_routing_rule` blocks
 
